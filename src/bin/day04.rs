@@ -3,15 +3,14 @@
 use std::io::{self, BufRead};
 use std::mem::MaybeUninit;
 
-
 fn smaller(a: &[u8; 6], b: &[u8; 6]) -> bool {
     let a: u64 = unsafe {
         let a: *const u64 = std::mem::transmute(a.as_ptr());
-        (*a & 0x0000FFFFFFFFFFFF).swap_bytes()  // ONLY NEEDED ON SMALL-ENDIAN SYSTEMS
+        (*a & 0x0000_FFFF_FFFF_FFFF).swap_bytes() // ONLY NEEDED ON SMALL-ENDIAN SYSTEMS
     };
     let b: u64 = unsafe {
         let b: *const u64 = std::mem::transmute(b.as_ptr());
-        (*b & 0x0000FFFFFFFFFFFF).swap_bytes()
+        (*b & 0x0000_FFFF_FFFF_FFFF).swap_bytes()
     };
     a < b
 }
@@ -31,7 +30,11 @@ fn strict_double_digits(nb: &[u8; 6]) -> bool {
         if nb[i] == nb[i + 1] {
             match ((i + 1) == l) || nb[i + 1] != nb[i + 2] {
                 true => return true,
-                false => while i != l && nb[i] == nb[i+1] { i+= 1 },
+                false => {
+                    while i != l && nb[i] == nb[i + 1] {
+                        i += 1
+                    }
+                }
             }
         }
         i += 1;
@@ -55,14 +58,13 @@ fn parse_input(inp: &str) -> [u8; 6] {
         panic!("input nb too long");
     }
     let mut res = MaybeUninit::<[u8; 6]>::uninit();
-    let res = unsafe {
+    unsafe {
         let res_w = res.get_mut();
         for i in 0..res_w.len() {
             res_w[i] = inp[i] - b'0';
         }
         res.assume_init()
-    };
-    res
+    }
 }
 
 fn main() {
@@ -74,7 +76,7 @@ fn main() {
 
     let dash = input.find('-').unwrap();
     let mut nb = parse_input(&input[..dash]);
-    let end = parse_input(&input[dash+1..]);
+    let end = parse_input(&input[dash + 1..]);
 
     let mut occurences = 0;
     let mut occurences_1 = 0;

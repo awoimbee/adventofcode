@@ -1,6 +1,6 @@
 use std::io::{self, BufRead};
 
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 struct Vert {
     x: i32,
     y: i32,
@@ -8,7 +8,7 @@ struct Vert {
 
 /// Returns (vertical, horizontal)
 fn parse_input(input: String) -> Vec<Vert> {
-    let mut last_vert = Vert{x: 0, y: 0};
+    let mut last_vert = Vert { x: 0, y: 0 };
     let mut path = Vec::new();
 
     for p in input.split(',') {
@@ -49,11 +49,15 @@ fn main() {
     let input = stdin.lock().lines().next().unwrap().unwrap();
     let path1 = parse_input(input);
 
-    let mut smallest_steps = 9999999;
+    let mut smallest_steps = std::usize::MAX;
     for (stepw0, w0) in path0.chunks(2).enumerate() {
-        if w0.len() == 1 { break; }
+        if w0.len() == 1 {
+            break;
+        }
         for (stepw1, w1) in path1.chunks(2).enumerate() {
-            if w1.len() == 1 { break; }
+            if w1.len() == 1 {
+                break;
+            }
             let w = [
                 match w0[1].x > w0[0].x || w0[1].y > w0[0].y {
                     true => [w0[0], w0[1]],
@@ -64,11 +68,23 @@ fn main() {
                     false => [w1[1], w1[0]],
                 },
             ];
-            if w1.len() == 1 { break; }
+            if w1.len() == 1 {
+                break;
+            }
             println!("test {}:{} {:?}", stepw0, stepw1, w);
             // if 0 is vertical    and 1 is horizontal   and  0 inside 1 horiwontaly              and   1 inside 0 vertically
-            if (w[0][0].x == w[0][1].x && w[1][0].y == w[1][1].y && w[1][0].x <= w[0][0].x && w[0][0].x <= w[1][1].x && w[0][0].y <= w[1][0].y && w[1][0].y <= w[0][1].y)
-            || (w[1][0].x == w[1][1].x && w[0][0].y == w[0][1].y && w[0][0].x <= w[1][0].x && w[1][0].x <= w[0][1].x && w[1][0].y <= w[0][0].y && w[0][0].y <= w[1][1].y)
+            if (w[0][0].x == w[0][1].x
+                && w[1][0].y == w[1][1].y
+                && w[1][0].x <= w[0][0].x
+                && w[0][0].x <= w[1][1].x
+                && w[0][0].y <= w[1][0].y
+                && w[1][0].y <= w[0][1].y)
+                || (w[1][0].x == w[1][1].x
+                    && w[0][0].y == w[0][1].y
+                    && w[0][0].x <= w[1][0].x
+                    && w[1][0].x <= w[0][1].x
+                    && w[1][0].y <= w[0][0].y
+                    && w[0][0].y <= w[1][1].y)
             // if (w[0][0].x == w[0][1].x && w[1][0].y <= w[0][0].y && w[0][0].y <= w[1][1].y)
             {
                 println!("PUTE PUTE");

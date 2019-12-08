@@ -7,7 +7,7 @@ fn main() -> io::Result<()> {
 
     for line in stdin.lock().lines() {
         let line = line?;
-        if line.len() == 0 {
+        if line.is_empty() {
             break;
         }
         let mut mass: u64 = line.parse().unwrap();

@@ -5,11 +5,10 @@ fn main() -> io::Result<()> {
     let mut fuel_req_p1: u64 = 0;
     let mut fuel_req_p2 = 0;
 
-    for line in stdin.lock().lines() {
-        let line = line?;
+    for line in stdin.lock().lines().map(|l| l.unwrap()) {
         if line.is_empty() {
             break;
-        }
+        };
         let mut mass: u64 = line.parse().unwrap();
         fuel_req_p1 += mass / 3 - 2;
         while mass > 6 {

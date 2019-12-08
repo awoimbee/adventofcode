@@ -1,7 +1,7 @@
 #![feature(const_fn)]
 
-use std::io::{self, BufRead};
 use std::collections::VecDeque;
+use std::io::{self, BufRead};
 
 macro_rules! log {
     ($($arg:tt)*) => (if cfg! (debug_assertions) { println!($($arg)*) } )
@@ -21,7 +21,7 @@ pub enum InputMode {
     VecInterupt,
 }
 
-#[derive(PartialEq,Debug)]
+#[derive(PartialEq, Debug)]
 pub enum MachineState {
     On,
     Halt,
@@ -36,7 +36,7 @@ pub struct Machine {
     pub input: VecDeque<i32>,
     i: InputMode,
     o: OutputMode,
-	pub output: Vec<i32>,
+    pub output: Vec<i32>,
 }
 
 impl Machine {
@@ -50,7 +50,7 @@ impl Machine {
             input,
             i,
             o,
-			output: Vec::new(),
+            output: Vec::new(),
         }
     }
 }
@@ -111,7 +111,7 @@ impl Machine {
                     self.pc -= 2;
                     self.state = MachineState::Halt;
                     return;
-                },
+                }
                 None => panic!("No input left"),
             };
             *dst = input;
@@ -143,8 +143,6 @@ impl Machine {
     }
 }
 
-
-
 impl Machine {
     pub fn run(&mut self) -> &Vec<i32> {
         log!("RUN");
@@ -161,8 +159,8 @@ impl Machine {
         if opcode >= INSTRUCTIONS.len() || opcode == 0 {
             match opcode == 99 {
                 true => {
-					log!("{:?}", self.ram);
-					self.state = MachineState::Off;
+                    log!("{:?}", self.ram);
+                    self.state = MachineState::Off;
                     return;
                 }
                 false => panic!("ERROR: opcode is {}\n{:?}", opcode, self.ram),

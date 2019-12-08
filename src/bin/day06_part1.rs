@@ -18,7 +18,7 @@ fn main() -> io::Result<()> {
         objects.insert(child.to_owned(), parent.to_owned());
     }
     let mut nb = 0;
-    for (_child, mut parent) in objects.values() {
+    for mut parent in objects.values() {
         while let Some(p) = objects.get(parent) {
             parent = p;
             nb += 1;

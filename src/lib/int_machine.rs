@@ -1,6 +1,59 @@
 #![feature(const_fn)]
 
 use std::io::{self, BufRead};
+use std::collections::VecDeque;
+
+macro_rules! log {
+    ($($arg:tt)*) => (if cfg! (debug_assertions) { println!($($arg)*) } )
+}
+
+#[derive(PartialEq)]
+pub enum OutputMode {
+    Stdout,
+    Stderr,
+    No,
+}
+
+#[derive(PartialEq)]
+pub enum InputMode {
+    Stdin,
+    VecDirect,
+    VecInterupt,
+}
+
+#[derive(PartialEq,Debug)]
+pub enum MachineState {
+    On,
+    Halt,
+    Off,
+}
+
+pub struct Machine {
+    pub pc: usize,
+    pub reg: [i32; 4],
+    pub ram: Vec<i32>,
+    pub state: MachineState,
+    pub input: VecDeque<i32>,
+    i: InputMode,
+    o: OutputMode,
+	pub output: Vec<i32>,
+}
+
+impl Machine {
+    pub fn new(ram: Vec<i32>, input: Vec<i32>, i: InputMode, o: OutputMode) -> Machine {
+        let input = VecDeque::from(input);
+        Machine {
+            pc: 0,
+            reg: [0, 0, 0, 0],
+            ram,
+            state: MachineState::Halt,
+            input,
+            i,
+            o,
+			output: Vec::new(),
+        }
+    }
+}
 
 struct Instruction {
     exec: &'static dyn Fn(&mut Machine),
@@ -23,7 +76,17 @@ impl Instruction {
         }
     }
 }
-
+const INSTRUCTIONS: [Instruction; 9] = [
+    Instruction::new(&Machine::null, 0, 99, "Should never happen"),
+    Instruction::new(&Machine::add, 3, 2, "add"),
+    Instruction::new(&Machine::mul, 3, 2, "mul"),
+    Instruction::new(&Machine::inp, 1, 0, "input"),
+    Instruction::new(&Machine::out, 1, 99, "output"),
+    Instruction::new(&Machine::jmp_true, 2, 99, "jump-if-true"),
+    Instruction::new(&Machine::jmp_false, 2, 99, "jump-if-false"),
+    Instruction::new(&Machine::cmp_le, 3, 2, "less than"),
+    Instruction::new(&Machine::cmp_eq, 3, 2, "equals"),
+];
 // Instructions
 impl Machine {
     pub fn null(&mut self) {}
@@ -37,10 +100,30 @@ impl Machine {
     }
     pub fn inp(&mut self) {
         let dst = &mut self.ram[self.reg[0] as usize];
-        *dst = self.input.pop().unwrap();
+        if self.i == InputMode::Stdin {
+            let input = io::stdin().lock().lines().next().unwrap().unwrap();
+            *dst = input.parse().unwrap();
+        } else {
+            let input = match self.input.pop_front() {
+                Some(i) => i,
+                None if self.i == InputMode::VecInterupt => {
+                    log!("No input, halting");
+                    self.pc -= 2;
+                    self.state = MachineState::Halt;
+                    return;
+                },
+                None => panic!("No input left"),
+            };
+            *dst = input;
+        }
     }
     pub fn out(&mut self) {
-		self.output.push(self.reg[0]);
+        self.output.push(self.reg[0]);
+        match self.o {
+            OutputMode::Stderr => eprintln!("{}", self.reg[0]),
+            OutputMode::Stdout => println!("{}", self.reg[0]),
+            _ => (),
+        };
     }
     pub fn jmp_true(&mut self) {
         if self.reg[0] != 0 {
@@ -60,43 +143,17 @@ impl Machine {
     }
 }
 
-const INSTRUCTIONS: [Instruction; 9] = [
-    Instruction::new(&Machine::null, 0, 99, "Should never happen"),
-    Instruction::new(&Machine::add, 3, 2, "add"),
-    Instruction::new(&Machine::mul, 3, 2, "mul"),
-    Instruction::new(&Machine::inp, 1, 0, "input"),
-    Instruction::new(&Machine::out, 1, 99, "output"),
-    Instruction::new(&Machine::jmp_true, 2, 99, "jump-if-true"),
-    Instruction::new(&Machine::jmp_false, 2, 99, "jump-if-false"),
-    Instruction::new(&Machine::cmp_le, 3, 2, "less than"),
-    Instruction::new(&Machine::cmp_eq, 3, 2, "equals"),
-];
 
-struct Machine {
-    pub pc: usize,
-    pub reg: [i32; 4],
-	pub ram: Vec<i32>,
-	pub input: Vec<i32>,
-	pub output: Vec<i32>,
-}
 
 impl Machine {
-    pub fn new(ram: Vec<i32>, input: Vec<i32>) -> Machine {
-        Machine {
-            pc: 0,
-            reg: [0, 0, 0, 0],
-			ram,
-			input,
-			output: Vec::new(),
-        }
-    }
-}
-
-impl Machine {
-    pub fn run(&mut self) {
-        while self.pc != std::usize::MAX {
+    pub fn run(&mut self) -> &Vec<i32> {
+        log!("RUN");
+        self.state = MachineState::On;
+        while self.state == MachineState::On {
             self.run_one()
         }
+        log!("STOP: {:?}", self.state);
+        &self.output
     }
     pub fn run_one(&mut self) {
         let rawcode = self.ram[self.pc] as usize;
@@ -104,8 +161,8 @@ impl Machine {
         if opcode >= INSTRUCTIONS.len() || opcode == 0 {
             match opcode == 99 {
                 true => {
-					eprintln!("{:?}", self.ram);
-					self.pc = std::usize::MAX;
+					log!("{:?}", self.ram);
+					self.state = MachineState::Off;
                     return;
                 }
                 false => panic!("ERROR: opcode is {}\n{:?}", opcode, self.ram),
@@ -126,70 +183,13 @@ impl Machine {
                 _ => panic!("Fetch_mode is fucked"),
             };
         }
-        eprintln!(
-            "{} reg: {:?}",
+        log!(
+            "{:10} reg: {:?}",
             inst.name,
             &self.reg[..inst.nb_params as usize]
         );
         self.pc += 1 + inst.nb_params as usize;
         (inst.exec)(self);
-        eprintln!("pc move to {}", self.pc);
+        log!("-> pc move to {}", self.pc);
     }
 }
-
-
-fn main() {
-    let stdin = io::stdin();
-    let input = stdin.lock().lines().next().unwrap().unwrap();
-
-    let code: Vec<i32> = input
-        .trim()
-        .split(',')
-        .map(|s| s.parse().unwrap())
-		.collect();
-	let mut max_output = 0;
-	let mut max_params = [0, 0, 0, 0, 0];
-
-	// let mut params = [0, 0, 0, 0, 0];
-	for a in 0..=4 {
-		let mut ma = Machine::new(code.clone(), vec![0, a]);
-		ma.run();
-		for b in 0..=4 {
-			if b == a {
-				continue;
-			}
-			let mut mb = Machine::new(code.clone(), vec![ma.output[0], b]);
-			mb.run();
-			for c in 0..=4 {
-				if c == a || c == b {
-					continue;
-				}
-				let mut mc = Machine::new(code.clone(), vec![mb.output[0], c]);
-				mc.run();
-				for d in 0..=4 {
-					if d == a || d == b || d == c {
-						continue;
-					}
-					let mut md = Machine::new(code.clone(), vec![mc.output[0], d]);
-					md.run();
-					for e in 0..=4 {
-						if e == a || e == b || e == c || e == d {
-							continue;
-						}
-						let mut me = Machine::new(code.clone(), vec![md.output[0], e]);
-						me.run();
-						let re = me.output[0];
-						if re > max_output {
-							max_output = re;
-							max_params = [a, b, c, d, e];
-						}
-
-					}
-				}
-			}
-		}
-	}
-	println!("Max output: {}", max_output);
-	println!("Params: {:?}", max_params);
-}
-// 3,23,3,24,1002,24,10,24,1002,23,-1,23,101,5,23,23,1,24,23,23,4,23,99,0,0

@@ -1,6 +1,6 @@
 use std::io::{self, BufRead};
 
-#[derive(Clone,Copy)]
+#[derive(Clone,Copy,Debug)]
 struct Vert {
     x: i32,
     y: i32,
@@ -54,7 +54,24 @@ fn main() {
         if w0.len() == 1 { break; }
         for (stepw1, w1) in path1.chunks(2).enumerate() {
             if w1.len() == 1 { break; }
-            if (w0[0].x <= w1[0].x && w1[0].x <= w0[1].x) && (w1[0].y <= w0[0].y && w0[0].y <= w1[1].y) {
+            let w = [
+                match w0[1].x > w0[0].x || w0[1].y > w0[0].y {
+                    true => [w0[0], w0[1]],
+                    false => [w0[1], w0[0]],
+                },
+                match w1[1].x > w1[0].x || w1[1].y > w1[0].y {
+                    true => [w1[0], w1[1]],
+                    false => [w1[1], w1[0]],
+                },
+            ];
+            if w1.len() == 1 { break; }
+            println!("test {}:{} {:?}", stepw0, stepw1, w);
+            // if 0 is vertical    and 1 is horizontal   and  0 inside 1 horiwontaly              and   1 inside 0 vertically
+            if (w[0][0].x == w[0][1].x && w[1][0].y == w[1][1].y && w[1][0].x <= w[0][0].x && w[0][0].x <= w[1][1].x && w[0][0].y <= w[1][0].y && w[1][0].y <= w[0][1].y)
+            || (w[1][0].x == w[1][1].x && w[0][0].y == w[0][1].y && w[0][0].x <= w[1][0].x && w[1][0].x <= w[0][1].x && w[1][0].y <= w[0][0].y && w[0][0].y <= w[1][1].y)
+            // if (w[0][0].x == w[0][1].x && w[1][0].y <= w[0][0].y && w[0][0].y <= w[1][1].y)
+            {
+                println!("PUTE PUTE");
                 let dist = stepw1 + stepw0;
                 if dist < smallest_steps && dist != 0 {
                     smallest_steps = dist;

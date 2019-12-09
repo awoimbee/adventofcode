@@ -3,14 +3,14 @@
 use std::io::{self, BufRead};
 
 struct Instruction {
-    exec: &'static dyn Fn(&mut Machine),
+    exec: &'static dyn Fn(&mut Vm),
     nb_params: usize,
     arg_store: usize,
     name: &'static str,
 }
 impl Instruction {
     pub const fn new(
-        exec: &'static dyn Fn(&mut Machine),
+        exec: &'static dyn Fn(&mut Vm),
         nb_params: usize,
         arg_store: usize,
         name: &'static str,
@@ -25,25 +25,25 @@ impl Instruction {
 }
 
 const INSTRUCTIONS: [Instruction; 9] = [
-    Instruction::new(&Machine::null, 0, 99, "Should never happen"),
-    Instruction::new(&Machine::add, 3, 2, "add"),
-    Instruction::new(&Machine::mul, 3, 2, "mul"),
-    Instruction::new(&Machine::inp, 1, 0, "input"),
-    Instruction::new(&Machine::out, 1, 99, "output"),
-    Instruction::new(&Machine::jmp_true, 2, 99, "jump-if-true"),
-    Instruction::new(&Machine::jmp_false, 2, 99, "jump-if-false"),
-    Instruction::new(&Machine::cmp_le, 3, 2, "less than"),
-    Instruction::new(&Machine::cmp_eq, 3, 2, "equals"),
+    Instruction::new(&Vm::null, 0, 99, "Should never happen"),
+    Instruction::new(&Vm::add, 3, 2, "add"),
+    Instruction::new(&Vm::mul, 3, 2, "mul"),
+    Instruction::new(&Vm::inp, 1, 0, "input"),
+    Instruction::new(&Vm::out, 1, 99, "output"),
+    Instruction::new(&Vm::jmp_true, 2, 99, "jump-if-true"),
+    Instruction::new(&Vm::jmp_false, 2, 99, "jump-if-false"),
+    Instruction::new(&Vm::cmp_le, 3, 2, "less than"),
+    Instruction::new(&Vm::cmp_eq, 3, 2, "equals"),
 ];
 
-struct Machine {
+struct Vm {
     pub pc: usize, // programm counter / instruction pointer
     pub reg: [i32; 4],
     pub ram: Vec<i32>,
 }
-impl Machine {
-    pub fn new(ram: Vec<i32>) -> Machine {
-        Machine {
+impl Vm {
+    pub fn new(ram: Vec<i32>) -> Vm {
+        Vm {
             pc: 0,
             reg: [0, 0, 0, 0],
             ram,
@@ -60,11 +60,11 @@ fn main() {
         .split(',')
         .map(|s| s.parse().unwrap())
         .collect();
-    let mut machine = Machine::new(tab);
+    let mut machine = Vm::new(tab);
     machine.run();
 }
 
-impl Machine {
+impl Vm {
     pub fn run(&mut self) {
         loop {
             self.run_one()
@@ -109,7 +109,7 @@ impl Machine {
 }
 
 // Instructions
-impl Machine {
+impl Vm {
     pub fn null(&mut self) {}
     // pub fn exit(&mut self) {
     // 	std::process::exit(0);

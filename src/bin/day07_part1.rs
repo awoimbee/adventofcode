@@ -1,16 +1,16 @@
 #![feature(const_fn)]
 
-extern crate int_machine;
-// use lib::int_machine;
+extern crate int_vm;
+// use lib::int_vm;
 
-use int_machine::{InputMode, Machine, OutputMode};
+use int_vm::{InputMode, OutputMode, Vm};
 use std::io::{self, BufRead};
 
 fn main() {
     let stdin = io::stdin();
     let input = stdin.lock().lines().next().unwrap().unwrap();
 
-    let code: Vec<i32> = input
+    let code: Vec<_> = input
         .trim()
         .split(',')
         .map(|s| s.parse().unwrap())
@@ -19,7 +19,7 @@ fn main() {
     let mut max_params = [0, 0, 0, 0, 0];
 
     for a in 0..=4 {
-        let mut ma = Machine::new(
+        let mut ma = Vm::new(
             code.clone(),
             vec![a, 0],
             InputMode::VecDirect,
@@ -30,7 +30,7 @@ fn main() {
             if b == a {
                 continue;
             }
-            let mut mb = Machine::new(
+            let mut mb = Vm::new(
                 code.clone(),
                 vec![b, ma.output[0]],
                 InputMode::VecDirect,
@@ -41,7 +41,7 @@ fn main() {
                 if c == a || c == b {
                     continue;
                 }
-                let mut mc = Machine::new(
+                let mut mc = Vm::new(
                     code.clone(),
                     vec![c, mb.output[0]],
                     InputMode::VecDirect,
@@ -52,7 +52,7 @@ fn main() {
                     if d == a || d == b || d == c {
                         continue;
                     }
-                    let mut md = Machine::new(
+                    let mut md = Vm::new(
                         code.clone(),
                         vec![d, mc.output[0]],
                         InputMode::VecDirect,
@@ -63,7 +63,7 @@ fn main() {
                         if e == a || e == b || e == c || e == d {
                             continue;
                         }
-                        let mut me = Machine::new(
+                        let mut me = Vm::new(
                             code.clone(),
                             vec![e, md.output[0]],
                             InputMode::VecDirect,

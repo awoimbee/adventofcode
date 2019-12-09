@@ -1,20 +1,20 @@
 #![feature(const_fn)]
 
-extern crate int_machine;
+extern crate int_vm;
 
-use int_machine::{InputMode, Machine, MachineState, OutputMode};
+use int_vm::{InputMode, OutputMode, Vm, VmState};
 use std::collections::HashSet;
 use std::io::{self, BufRead};
 
-fn run_vm_arg(vm: &mut Machine, arg: i32) -> i32 {
+fn run_vm_arg(vm: &mut Vm, arg: i64) -> i64 {
     vm.input.push_back(arg);
     vm.run();
     vm.output.pop().unwrap()
 }
 
-fn feedback_loop(prog: &Vec<i32>, phase_seq: [i32; 5]) -> i32 {
+fn feedback_loop(prog: &Vec<i64>, phase_seq: [i64; 5]) -> i64 {
     let new = |ps| {
-        Machine::new(
+        Vm::new(
             prog.clone(),
             vec![ps],
             InputMode::VecInterupt,
@@ -26,9 +26,9 @@ fn feedback_loop(prog: &Vec<i32>, phase_seq: [i32; 5]) -> i32 {
     let mut mc = new(phase_seq[2]);
     let mut md = new(phase_seq[3]);
     let mut me = new(phase_seq[4]);
-    me.state = MachineState::Halt;
+    me.state = VmState::Halt;
     let mut out = 0;
-    while me.state != MachineState::Off {
+    while me.state != VmState::Off {
         out = run_vm_arg(&mut ma, out);
         out = run_vm_arg(&mut mb, out);
         out = run_vm_arg(&mut mc, out);
@@ -43,7 +43,7 @@ fn main() {
     let stdin = io::stdin();
     let input = stdin.lock().lines().next().unwrap().unwrap();
 
-    let code: Vec<i32> = input
+    let code: Vec<_> = input
         .trim()
         .split(',')
         .map(|s| s.parse().unwrap())
@@ -56,7 +56,7 @@ fn main() {
                 for l in 5..10 {
                     for m in 5..10 {
                         let phase_seq = [i, j, k, l, m];
-                        let ps_set: HashSet<i32> = vec![i, j, k, l, m].into_iter().collect();
+                        let ps_set: HashSet<i64> = vec![i, j, k, l, m].into_iter().collect();
                         if ps_set.len() == 5 {
                             let result = feedback_loop(&code, phase_seq);
                             if result > max_output {

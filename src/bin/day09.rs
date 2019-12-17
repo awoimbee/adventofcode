@@ -15,6 +15,10 @@ fn main() {
         .map(|s| s.parse().unwrap())
         .collect();
 
-    let mut vm = Vm::new(code, vec![], InputMode::Stdin, OutputMode::Stderr);
-    vm.run();
+    let now = std::time::Instant::now();
+    let mut vm = Vm::new(code.clone(), vec![1], InputMode::VecDirect, OutputMode::No);
+    println!("Part. I: {} (took {}µs)", vm.run()[0], now.elapsed().as_micros());
+
+    let mut vm = Vm::new(code, vec![2], InputMode::VecDirect, OutputMode::No);
+    println!("Part. II: {} (took {}µs)", vm.run()[0], now.elapsed().as_micros());
 }

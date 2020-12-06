@@ -1,4 +1,4 @@
-const INPUT: &[u8] = include_bytes!("../../input/day01.txt");
+const INPUT: &[u8] = include_bytes!("../input/day01.txt");
 
 fn part_1(mut numbers: Vec<usize>) {
     while let Some(nb) = numbers.pop() {
@@ -33,7 +33,7 @@ fn part_2(mut numbers: Vec<usize>) {
     println!("Part 2: Not found !");
 }
 
-fn main() {
+pub fn day01() {
     let numbers: Vec<usize> = INPUT
         .split(|&c| c == b'\n')
         .filter(|s| !s.is_empty())

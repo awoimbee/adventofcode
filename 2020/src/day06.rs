@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-const INPUT: &[u8] = include_bytes!("../../input/day06.txt");
+const INPUT: &[u8] = include_bytes!("../input/day06.txt");
 
-fn main() {
+pub fn day06() {
     let mut count_part1: usize = 0;
     let mut count_part2: usize = 0;
     let mut answers: HashMap<u8, usize> = HashMap::new();

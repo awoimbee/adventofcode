@@ -3,11 +3,12 @@
 mod day01;
 mod day06;
 mod day07;
+mod day08;
 
 use std::time::SystemTime;
 
 fn time(s: &str, f: fn() -> ()) {
-	println!("#### DAY{} ####", s);
+    println!("#### DAY{} ####", s);
     let t0 = SystemTime::now();
     f();
     let t1 = SystemTime::now();
@@ -26,4 +27,5 @@ fn main() {
     time("01", day01::day01);
     time("06", day06::day06);
     time("07", day07::day07);
+    time("08", day08::day08);
 }

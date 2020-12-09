@@ -6,3 +6,5 @@ edition = "2018"
 
 [dependencies]
 fnv = "1.0.7"
+bitvec = "0.19.4"
+colored = "2"

@@ -4,7 +4,7 @@ fn part_1(mut numbers: Vec<usize>) -> String {
     while let Some(nb) = numbers.pop() {
         let needed = 2020 - nb;
         if numbers.contains(&needed) {
-            return format!("Part 1: {}", nb * needed);
+            return format!("{}", nb * needed);
         }
     }
     unreachable!("Part 1: Not found !");
@@ -24,7 +24,7 @@ fn part_2(mut numbers: Vec<usize>) -> String {
             };
             let needed = 2020 - nb0 - nb1;
             if numbers_slice.contains(&needed) {
-                return format!("Part 2: {}", nb0 * nb1 * needed);
+                return format!("{}", nb0 * nb1 * needed);
             }
         }
     }

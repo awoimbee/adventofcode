@@ -1,12 +1,18 @@
 #![feature(const_str_from_utf8_unchecked)]
 
 mod day01;
+mod day02;
+mod day03;
+mod day04;
+mod day05;
 mod day06;
 mod day07;
 mod day08;
 mod day09;
 
 use std::time::SystemTime;
+use colored::*;
+
 type Day = fn() -> (String, String);
 
 fn timeit(f: Day) -> f64 {
@@ -18,30 +24,40 @@ fn timeit(f: Day) -> f64 {
 
 fn fmt_time(t: f64) -> String {
     match t {
-        t if t < 1e-3 => format!("{}µs", t / 1e-6),
-        t if t < 1. => format!("{}ms", t / 1e-3),
-        t => format!("{}s", t),
+        t if t < 1e-3 => format!("{:.2}µs", t / 1e-6),
+        t if t < 1. => format!("{:.2}ms", t / 1e-3),
+        t => format!("{:.2}s", t),
     }
 }
 
 fn main() {
-    let mut days: Vec<(&str, Day)> = vec![
+    const NB_RUNS: usize = 100;
+    const SOLUTIONS: [(&'static str, Day); 9] = [
         ("01", day01::day01),
+        ("02", day02::day02),
+        ("03", day03::day03),
+        ("04", day04::day04),
+        ("05", day05::day05),
         ("06", day06::day06),
         ("07", day07::day07),
         ("08", day08::day08),
         ("09", day09::day09),
     ];
+
+    println!("Running the solutions {} times.", NB_RUNS);
+
     let mut total_time = 0.;
-    for (s, f) in days.drain(..) {
-        println!("#### DAY{} ####", s);
+    for (s, f) in SOLUTIONS.iter() {
         let (p1, p2) = f();
-        println!("Part 1: {}", p1);
-        println!("Part 2: {}", p2);
-        const NB_RUNS: usize = 1000;
-        let avg_time: f64 = (0..NB_RUNS).map(|_| timeit(f)).sum::<f64>() / NB_RUNS as f64;
-        println!("-> average over {} runs: {}", NB_RUNS, fmt_time(avg_time));
+        let avg_time: f64 = (0..NB_RUNS).map(|_| timeit(*f)).sum::<f64>() / NB_RUNS as f64;
         total_time += avg_time;
+        println!(
+            "{title:} ({duration:})\nPart 1: {p1:}\nPart2: {p2:}",
+            title=format!("#### DAY{} ####", s).yellow(),
+            duration=fmt_time(avg_time).green(),
+            p1=p1,
+            p2=p2,
+        );
     }
     println!("\nTOTAL TIME: {}", fmt_time(total_time));
 }

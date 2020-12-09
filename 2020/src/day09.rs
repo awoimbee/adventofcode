@@ -70,5 +70,5 @@ pub fn day09() -> (String, String) {
     let numbers = parse().collect::<Vec<_>>();
     let p1 = part_1(&numbers).unwrap();
     let p2 = part_2(&numbers, p1).unwrap();
-    (format!("Part 1: {}", p1), format!("Part 2: {}", p2))
+    (format!("{}", p1), format!("{}", p2))
 }

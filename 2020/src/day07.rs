@@ -79,7 +79,7 @@ fn part2(bags: &BagMap, parent_bag: u64) -> usize {
 pub fn day07() -> (String, String) {
     let bag_map = parse();
     (
-        format!("Part 1: {}", part1(&bag_map)),
-        format!("Part 2: {}", part2(&bag_map, hash_str("shiny gold")) - 1),
+        format!("{}", part1(&bag_map)),
+        format!("{}", part2(&bag_map, hash_str("shiny gold")) - 1),
     )
 }

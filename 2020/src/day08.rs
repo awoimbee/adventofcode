@@ -111,7 +111,7 @@ pub fn day08() -> (String, String) {
     let mut instructions = parse();
 
     (
-        format!("Part 1: {}", part_1(&instructions)),
-        format!("Part 2: {}", part_2(&mut instructions)),
+        format!("{}", part_1(&instructions)),
+        format!("{}", part_2(&mut instructions)),
     )
 }

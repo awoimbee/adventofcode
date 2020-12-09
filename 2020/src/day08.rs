@@ -76,10 +76,10 @@ fn parse() -> Vec<Instruction> {
     instructions
 }
 
-fn part_1(code: &[Instruction]) {
+fn part_1(code: &[Instruction]) -> i32 {
     let mut machine = VM::default();
     machine.run(code);
-    println!("Part 1: {}", machine.accumulator);
+    machine.accumulator
 }
 
 fn part_2_invert(instr: &mut Instruction) {
@@ -90,7 +90,7 @@ fn part_2_invert(instr: &mut Instruction) {
     }
 }
 
-fn part_2(code: &mut [Instruction]) {
+fn part_2(code: &mut [Instruction]) -> i32 {
     let mut i = 0;
     loop {
         let instr = unsafe { code.get_unchecked_mut(i) };
@@ -98,8 +98,7 @@ fn part_2(code: &mut [Instruction]) {
             part_2_invert(instr);
             let mut machine = VM::default();
             if machine.run(&code) {
-                println!("Part 2: {}", machine.accumulator);
-                return;
+                return machine.accumulator;
             }
             let instr = unsafe { code.get_unchecked_mut(i) };
             part_2_invert(instr);
@@ -108,8 +107,11 @@ fn part_2(code: &mut [Instruction]) {
     }
 }
 
-pub fn day08() {
+pub fn day08() -> (String, String) {
     let mut instructions = parse();
-    part_1(&instructions);
-    part_2(&mut instructions);
+
+    (
+        format!("Part 1: {}", part_1(&instructions)),
+        format!("Part 2: {}", part_2(&mut instructions)),
+    )
 }

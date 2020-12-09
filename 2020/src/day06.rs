@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 const INPUT: &[u8] = include_bytes!("../input/day06.txt");
 
-pub fn day06() {
+pub fn day06() -> (String, String) {
     let mut count_part1: usize = 0;
     let mut count_part2: usize = 0;
     let mut answers: HashMap<u8, usize> = HashMap::new();
@@ -25,6 +25,8 @@ pub fn day06() {
             }
         }
     }
-    println!("Part 1: {}", count_part1);
-    println!("Part 2: {}", count_part2);
+    (
+        format!("Part 1: {}", count_part1),
+        format!("Part 2: {}", count_part2),
+    )
 }

@@ -1,17 +1,16 @@
 const INPUT: &[u8] = include_bytes!("../input/day01.txt");
 
-fn part_1(mut numbers: Vec<usize>) {
+fn part_1(mut numbers: Vec<usize>) -> String {
     while let Some(nb) = numbers.pop() {
         let needed = 2020 - nb;
         if numbers.contains(&needed) {
-            println!("Part 1: {}", nb * needed);
-            return;
+            return format!("Part 1: {}", nb * needed);
         }
     }
-    println!("Part 1: Not found !");
+    unreachable!("Part 1: Not found !");
 }
 
-fn part_2(mut numbers: Vec<usize>) {
+fn part_2(mut numbers: Vec<usize>) -> String {
     while let Some(nb0) = numbers.pop() {
         if nb0 > 2020 {
             continue;
@@ -25,15 +24,14 @@ fn part_2(mut numbers: Vec<usize>) {
             };
             let needed = 2020 - nb0 - nb1;
             if numbers_slice.contains(&needed) {
-                println!("Part 2: {}", nb0 * nb1 * needed);
-                return;
+                return format!("Part 2: {}", nb0 * nb1 * needed);
             }
         }
     }
-    println!("Part 2: Not found !");
+    unreachable!("Part 2: Not found !");
 }
 
-pub fn day01() {
+pub fn day01() -> (String, String) {
     let numbers: Vec<usize> = INPUT
         .split(|&c| c == b'\n')
         .filter(|s| !s.is_empty())
@@ -41,6 +39,7 @@ pub fn day01() {
         .filter(|&nb| nb <= 2020)
         .collect();
 
-    part_1(numbers.clone());
-    part_2(numbers);
+    let p1 = part_1(numbers.clone());
+    let p2 = part_2(numbers);
+    (p1, p2)
 }

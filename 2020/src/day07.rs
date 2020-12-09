@@ -54,14 +54,14 @@ fn contains_bag(bag: u64, color: u64, bag_map: &BagMap) -> bool {
     false
 }
 
-fn part1(bags: &BagMap) {
+fn part1(bags: &BagMap) -> u32 {
     let mut sum = 0;
     for &k in bags.keys() {
         if contains_bag(k, hash_str("shiny gold"), bags) {
             sum += 1;
         }
     }
-    println!("Part 1: {}", sum);
+    sum
 }
 
 fn part2(bags: &BagMap, parent_bag: u64) -> usize {
@@ -76,9 +76,10 @@ fn part2(bags: &BagMap, parent_bag: u64) -> usize {
     count
 }
 
-pub fn day07() {
+pub fn day07() -> (String, String) {
     let bag_map = parse();
-    // return;
-    part1(&bag_map);
-    println!("Part 2: {}", part2(&bag_map, hash_str("shiny gold")) - 1);
+    (
+        format!("Part 1: {}", part1(&bag_map)),
+        format!("Part 2: {}", part2(&bag_map, hash_str("shiny gold")) - 1),
+    )
 }

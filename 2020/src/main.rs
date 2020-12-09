@@ -4,6 +4,7 @@ mod day01;
 mod day06;
 mod day07;
 mod day08;
+mod day09;
 
 use std::time::SystemTime;
 
@@ -24,8 +25,14 @@ fn time(s: &str, f: fn() -> ()) {
 }
 
 fn main() {
-    time("01", day01::day01);
-    time("06", day06::day06);
-    time("07", day07::day07);
-    time("08", day08::day08);
+    let mut days: Vec<(&str, fn() -> ())> = vec![
+        ("01", day01::day01),
+        ("06", day06::day06),
+        ("07", day07::day07),
+        ("08", day08::day08),
+        ("09", day09::day09),
+    ];
+    for (s, f) in days.drain(..) {
+        time(s, f);
+    }
 }

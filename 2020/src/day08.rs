@@ -45,7 +45,7 @@ impl VM {
         let mut visited = vec![false; code.len()];
         let mut pc = 0;
         while pc < code.len() {
-            if visited[pc] == true {
+            if visited[pc] {
                 return false;
             }
             let wrapped_instr = &code[pc];
@@ -60,7 +60,7 @@ impl VM {
             };
             pc += 1;
         }
-        return true;
+        true
     }
 }
 

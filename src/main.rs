@@ -9,9 +9,10 @@ mod day06;
 mod day07;
 mod day08;
 mod day09;
+mod day10;
 
-use std::time::SystemTime;
 use colored::*;
+use std::time::SystemTime;
 
 type Day = fn() -> (String, String);
 
@@ -32,7 +33,7 @@ fn fmt_time(t: f64) -> String {
 
 fn main() {
     const NB_RUNS: usize = 100;
-    const SOLUTIONS: [(&'static str, Day); 9] = [
+    const SOLUTIONS: [(&'static str, Day); 10] = [
         ("01", day01::day01),
         ("02", day02::day02),
         ("03", day03::day03),
@@ -42,6 +43,7 @@ fn main() {
         ("07", day07::day07),
         ("08", day08::day08),
         ("09", day09::day09),
+        ("10", day10::day10),
     ];
 
     println!("Running the solutions {} times.", NB_RUNS);
@@ -52,11 +54,11 @@ fn main() {
         let avg_time: f64 = (0..NB_RUNS).map(|_| timeit(*f)).sum::<f64>() / NB_RUNS as f64;
         total_time += avg_time;
         println!(
-            "{title:} ({duration:})\nPart 1: {p1:}\nPart2: {p2:}",
-            title=format!("#### DAY{} ####", s).yellow(),
-            duration=fmt_time(avg_time).green(),
-            p1=p1,
-            p2=p2,
+            "{title:} ({duration:})\nPart 1: {p1:}\nPart 2: {p2:}",
+            title = format!("#### DAY{} ####", s).yellow(),
+            duration = fmt_time(avg_time).green(),
+            p1 = p1,
+            p2 = p2,
         );
     }
     println!("\nTOTAL TIME: {}", fmt_time(total_time));

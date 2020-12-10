@@ -22,19 +22,19 @@ fn try_sum(preamble: &[usize], target: usize) -> bool {
     false
 }
 
-fn part_1(numbers: &[usize]) -> Option<usize> {
+fn part_1(numbers: &[usize]) -> usize {
     let mut idx = PREAMBLE;
     while idx < numbers.len() {
         let nb = numbers[idx];
         if !try_sum(&numbers[idx - PREAMBLE..idx], nb) {
-            return Some(nb);
+            return nb;
         }
         idx += 1;
     }
-    None
+    unreachable!();
 }
 
-fn part_2(numbers: &[usize], p1_result: usize) -> Option<usize> {
+fn part_2(numbers: &[usize], p1_result: usize) -> usize {
     let mut start = 0;
     let mut end = 1;
     let mut running_sum = numbers[start];
@@ -55,7 +55,7 @@ fn part_2(numbers: &[usize], p1_result: usize) -> Option<usize> {
                     }
                     (mi, ma)
                 };
-                return Some(min + max);
+                return min + max;
             }
             end += 1;
         }
@@ -63,12 +63,12 @@ fn part_2(numbers: &[usize], p1_result: usize) -> Option<usize> {
         end = start + 1;
         running_sum = numbers[start];
     }
-    None
+    unreachable!();
 }
 
 pub fn day09() -> (String, String) {
     let numbers = parse().collect::<Vec<_>>();
-    let p1 = part_1(&numbers).unwrap();
-    let p2 = part_2(&numbers, p1).unwrap();
+    let p1 = part_1(&numbers);
+    let p2 = part_2(&numbers, p1);
     (format!("{}", p1), format!("{}", p2))
 }

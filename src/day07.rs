@@ -1,4 +1,3 @@
-// use std::collections::HashMap;
 use fnv::FnvHashMap;
 use fnv::FnvHasher;
 use std::hash::Hasher;

@@ -25,8 +25,5 @@ pub fn day06() -> (String, String) {
             }
         }
     }
-    (
-        format!("{}", count_part1),
-        format!("{}", count_part2),
-    )
+    (format!("{}", count_part1), format!("{}", count_part2))
 }

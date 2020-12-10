@@ -8,9 +8,10 @@ fn parse() -> impl Iterator<Item = u64> {
 }
 
 pub fn day10() -> (String, String) {
-    let mut jolts = parse().collect::<Vec<_>>();
+    let mut jolts = Vec::with_capacity(105);
     jolts.push(0);
-    jolts.sort();
+    jolts.extend(parse());
+    jolts.sort_unstable();
     jolts.push(jolts.last().unwrap() + 3);
 
     let (p1, p2) = {

@@ -14,8 +14,6 @@ You will also find 2019's submissions in `./2019/`.
 cargo run
 # run with optimizations
 cargo run --release
-# run with extra optimizations
-RUSTFLAGS='-Ctarget-cpu=native -Copt-level=3' cargo run --release
 ```
 
 ## Observations
@@ -25,37 +23,40 @@ RUSTFLAGS='-Ctarget-cpu=native -Copt-level=3' cargo run --release
 ## Current results
 
 ```
-Running the solutions 10000 times.
-#### DAY01 #### (32.90µs)
+Running the solutions 100 times.
+#### DAY01 #### (36.57µs)
 Part 1: 840324
 Part 2: 170098110
-#### DAY02 #### (118.56µs)
+#### DAY02 #### (119.74µs)
 Part 1: 643
 Part 2: 388
-#### DAY03 #### (22.80µs)
+#### DAY03 #### (27.92µs)
 Part 1: 207
 Part 2: 2655892800
-#### DAY04 #### (90.73µs)
+#### DAY04 #### (103.95µs)
 Part 1: 250
 Part 2: 158
-#### DAY05 #### (74.67µs)
+#### DAY05 #### (73.39µs)
 Part 1: 978
 Part 2: 727
-#### DAY06 #### (372.06µs)
+#### DAY06 #### (314.17µs)
 Part 1: 6930
 Part 2: 3585
-#### DAY07 #### (753.54µs)
+#### DAY07 #### (802.81µs)
 Part 1: 326
 Part 2: 5635
-#### DAY08 #### (59.29µs)
+#### DAY08 #### (66.82µs)
 Part 1: 2051
 Part 2: 2304
-#### DAY09 #### (218.70µs)
+#### DAY09 #### (206.12µs)
 Part 1: 167829540
 Part 2: 28045630
-#### DAY10 #### (2.79µs)
+#### DAY10 #### (2.29µs)
 Part 1: 2240
 Part 2: 99214346656768
+#### DAY11 #### (9.00ms)
+Part 1: 2848
+Part 2:
 
-TOTAL TIME: 1.75ms
+TOTAL TIME: 10.75ms
 ```

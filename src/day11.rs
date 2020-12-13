@@ -24,8 +24,7 @@ unsafe impl<'a> Sync for UnsafeVec<'a> {}
 pub struct UnsafeBool(UnsafeCell<bool>);
 unsafe impl Sync for UnsafeBool {}
 
-type NeighborCounter = fn(&[&mut [u8]], usize, usize) -> usize;
-
+#[derive(Clone)]
 struct Map {
     pub seats: Vec<u8>,
     pub width: usize,
@@ -45,6 +44,73 @@ impl Map {
         self.seats.extend_from_slice(row);
         self
     }
+    pub fn seats_indices_part1(&self) -> Vec<(usize, Vec<usize>)> {
+        self.seats
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| **s != FLOOR)
+            .map(|(i, _)| {
+                let x = (i % self.width) as isize;
+                let y = (i / self.width) as isize;
+                (
+                    i,
+                    DIRECTIONS
+                        .iter()
+                        .filter_map(|(of_y, of_x)| {
+                            let tmp_y = y + of_y;
+                            let tmp_x = x + of_x;
+                            if !(0..self.width as isize).contains(&tmp_x)
+                                || !(0..self.height as isize).contains(&tmp_y)
+                            {
+                                None
+                            } else {
+                                let idx = tmp_y as usize * self.width + tmp_x as usize;
+                                if self.seats[idx] == FLOOR {
+                                    None
+                                } else {
+                                    Some(idx)
+                                }
+                            }
+                        })
+                        .collect::<Vec<usize>>(),
+                )
+            })
+            .collect()
+    }
+    pub fn seats_indices_part2(&self) -> Vec<(usize, Vec<usize>)> {
+        self.seats
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| **s != FLOOR)
+            .map(|(i, _)| {
+                (
+                    i,
+                    (0..9)
+                        .filter(|r| r != &4)
+                        .map(|r| (r % 3 - 1, r / 3 - 1))
+                        .filter_map(|(rx, ry)| {
+                            (1..)
+                                .map(|f| {
+                                    (
+                                        (i as isize % self.width as isize) + rx * f,
+                                        (i as isize / self.width as isize) + ry * f,
+                                    )
+                                })
+                                .take_while(|(x, y)| {
+                                    *x >= 0
+                                        && *y >= 0
+                                        && *x < self.width as isize
+                                        && *y < self.height as isize
+                                })
+                                .map(|(x, y)| (y * self.width as isize + x) as usize)
+                                .filter(|i| self.seats[*i] == EMPTY)
+                                .next()
+                        })
+                        .collect(),
+                )
+            })
+            .collect()
+    }
 }
 
 fn parse() -> Map {
@@ -54,101 +120,51 @@ fn parse() -> Map {
         .fold(Map::default(), |acc, x| acc.accumulate_row(x))
 }
 
-fn count_neighbors1(seats: &[&mut [u8]], y: usize, x: usize) -> usize {
-    let width = seats[0].len();
-    let height = seats.len();
-    let mut nb = 0;
-
-    for (of_y, of_x) in DIRECTIONS.iter() {
-        let tmp_y = y as isize + of_y;
-        let tmp_x = x as isize + of_x;
-        if !(0..width as isize).contains(&tmp_x) || !(0..height as isize).contains(&tmp_y) {
-            continue;
-        }
-        if seats[tmp_y as usize][tmp_x as usize] == OCCUPIED {
-            nb += 1;
-        }
-    }
-    nb
-}
-
-fn search(x: isize, y: isize, dx: isize, dy: isize, seats: &[&mut [u8]]) -> usize {
-    if x < 0 || x >= seats[0].len() as isize || y < 0 || y >= seats.len() as isize {
-        return 0;
-    }
-    match seats[y as usize][x as usize] {
-        FLOOR => search(x + dx, y + dy, dx, dy, seats),
-        OCCUPIED => 1,
-        EMPTY => 0,
-        _ => unreachable!(),
-    }
-}
-
-fn count_neighbors2(seats: &[&mut [u8]], y: usize, x: usize) -> usize {
-    DIRECTIONS
-        .iter()
-        .map(|&(dx, dy)| search(x as isize + dx, y as isize + dy, dx, dy, seats))
-        .sum()
-}
-
 fn run_simulation(
-    seats0: &mut Vec<u8>,
-    width: usize,
-    height: usize,
+    mut seats: Vec<u8>,
+    seat_map: Vec<(usize, Vec<usize>)>,
     tolerance: usize,
-    count_neighbors: NeighborCounter,
-) {
-    let mut seats1 = seats0.clone();
-    let mut seats_view0 = seats0.chunks_exact_mut(width).collect::<Vec<_>>();
-    let mut seats_view1 = seats1.chunks_exact_mut(width).collect::<Vec<_>>();
-    let mut sv_ref0 = UnsafeVec(UnsafeCell::from(&mut seats_view0));
-    let mut sv_ref1 = UnsafeVec(UnsafeCell::from(&mut seats_view1));
-    let updated = UnsafeBool(UnsafeCell::from(true));
-    let range: Vec<usize> = (0..(height * width)).collect();
-    unsafe {
-        while *updated.0.get() {
-            *updated.0.get() = false;
-            range.par_iter().for_each(|i| {
-                let x = i % width;
-                let y = i / width;
-                let seat = (*sv_ref0.0.get())[y][x];
-                if seat == FLOOR {
-                    return;
-                };
-                let nb_neighbors = count_neighbors(*sv_ref0.0.get(), y, x);
+) -> usize {
+    let mut seats1 = seats.clone();
 
-                (*sv_ref1.0.get())[y][x] = if seat == OCCUPIED && nb_neighbors >= tolerance {
-                    *updated.0.get() = true;
+    let mut cur = &mut seats;
+    let mut next = &mut seats1;
+
+    unsafe {
+        let mut updated = true;
+        while updated {
+            updated = false;
+            for (s_id, s_neigh) in seat_map.iter() {
+                let nb_neighbors: usize = s_neigh
+                    .iter()
+                    .map(|&s_id| (*cur.get_unchecked(s_id) == OCCUPIED) as usize)
+                    .sum();
+                let seat = cur[*s_id];
+                *next.get_unchecked_mut(*s_id) = if seat == OCCUPIED && nb_neighbors >= tolerance {
+                    updated = true;
                     EMPTY
                 } else if seat != OCCUPIED && nb_neighbors == 0 {
-                    *updated.0.get() = true;
+                    updated = true;
                     OCCUPIED
                 } else {
                     seat
-                };
-            });
-            let t = sv_ref0;
-            sv_ref0 = sv_ref1;
-            sv_ref1 = t;
+                }
+            }
+            std::mem::swap(&mut cur, &mut next);
         }
     }
+    seats.iter().map(|s| if *s == b'#' { 1 } else { 0 }).sum()
 }
 
 pub fn day11() -> (String, String) {
-    let mut map = parse();
-    let mut map2_seats = map.seats.clone();
+    let map = parse();
+    let map2 = map.clone();
 
-    run_simulation(&mut map.seats, map.width, map.height, 4, count_neighbors1);
-    let p1: u32 = map
-        .seats
-        .iter()
-        .map(|s| if *s == b'#' { 1 } else { 0 })
-        .sum();
-    run_simulation(&mut map2_seats, map.width, map.height, 5, count_neighbors2);
-    let p2: u32 = map2_seats
-        .iter()
-        .map(|s| if *s == b'#' { 1 } else { 0 })
-        .sum();
+    let p1_map = map.seats_indices_part1();
+    let p1 = run_simulation(map.seats, p1_map, 4);
+
+    let p2_map = map2.seats_indices_part2();
+    let p2 = run_simulation(map2.seats, p2_map, 5);
 
     (format!("{}", p1), format!("{}", p2))
 }

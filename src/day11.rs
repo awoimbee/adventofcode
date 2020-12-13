@@ -99,19 +99,17 @@ fn run_simulation(
     tolerance: usize,
     count_neighbors: NeighborCounter,
 ) {
+    let mut seats1 = seats0.clone();
+    let mut seats_view0 = seats0.chunks_exact_mut(width).collect::<Vec<_>>();
+    let mut seats_view1 = seats1.chunks_exact_mut(width).collect::<Vec<_>>();
+    let mut sv_ref0 = UnsafeVec(UnsafeCell::from(&mut seats_view0));
+    let mut sv_ref1 = UnsafeVec(UnsafeCell::from(&mut seats_view1));
+    let updated = UnsafeBool(UnsafeCell::from(true));
+    let range: Vec<usize> = (0..(height * width)).collect();
     unsafe {
-        let mut seats1 = seats0.clone();
-        let mut seats_view0 = seats0.chunks_exact_mut(width).collect::<Vec<_>>();
-        let mut seats_view1 = seats1.chunks_exact_mut(width).collect::<Vec<_>>();
-
-        let mut sv_ref0 = UnsafeVec(UnsafeCell::from(&mut seats_view0));
-        let mut sv_ref1 = UnsafeVec(UnsafeCell::from(&mut seats_view1));
-
-        let updated = UnsafeBool(UnsafeCell::from(true));
         while *updated.0.get() {
             *updated.0.get() = false;
-
-            (0..(height * width)).into_par_iter().for_each(|i| {
+            range.par_iter().for_each(|i| {
                 let x = i % width;
                 let y = i / width;
                 let seat = (*sv_ref0.0.get())[y][x];
@@ -127,7 +125,7 @@ fn run_simulation(
                     *updated.0.get() = true;
                     OCCUPIED
                 } else {
-                    (*sv_ref0.0.get())[y][x]
+                    seat
                 };
             });
             let t = sv_ref0;

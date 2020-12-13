@@ -12,6 +12,7 @@ mod day08;
 mod day09;
 mod day10;
 mod day11;
+mod day12;
 
 use colored::*;
 use std::time::SystemTime;
@@ -34,8 +35,8 @@ fn fmt_time(t: f64) -> String {
 }
 
 fn main() {
-    const NB_RUNS: usize = 100;
-    const SOLUTIONS: [(&'static str, Day); 11] = [
+    const NB_RUNS: usize = 1;
+    const SOLUTIONS: [(&'static str, Day); 12] = [
         ("01", day01::day01),
         ("02", day02::day02),
         ("03", day03::day03),
@@ -47,6 +48,7 @@ fn main() {
         ("09", day09::day09),
         ("10", day10::day10),
         ("11", day11::day11),
+        ("12", day12::day12),
     ];
 
     println!("Running the solutions {} times.", NB_RUNS);

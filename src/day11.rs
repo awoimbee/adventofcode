@@ -1,6 +1,3 @@
-use rayon::prelude::*;
-use std::cell::UnsafeCell;
-
 const INPUT: &str = include_str!("../input/day11.txt");
 
 const FLOOR: u8 = b'.';
@@ -17,12 +14,6 @@ const DIRECTIONS: [(isize, isize); 8] = [
     (1, 0),
     (1, 1),
 ];
-
-pub struct UnsafeVec<'a>(UnsafeCell<&'a mut Vec<&'a mut [u8]>>);
-unsafe impl<'a> Sync for UnsafeVec<'a> {}
-
-pub struct UnsafeBool(UnsafeCell<bool>);
-unsafe impl Sync for UnsafeBool {}
 
 #[derive(Clone)]
 struct Map {

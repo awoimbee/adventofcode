@@ -1,5 +1,4 @@
 #![feature(const_str_from_utf8_unchecked)]
-#![feature(const_generics)]
 
 mod day01;
 mod day02;
@@ -36,7 +35,11 @@ fn fmt_time(t: f64) -> String {
 }
 
 fn main() {
-    const NB_RUNS: usize = 1;
+    let argv: Vec<_> = std::env::args().collect();
+    let nb_runs = argv
+        .get(1)
+        .map(|s| s.parse::<usize>().expect("Not a valid number"))
+        .unwrap_or(1);
     const SOLUTIONS: [(&'static str, Day); 13] = [
         ("01", day01::day01),
         ("02", day02::day02),
@@ -53,20 +56,16 @@ fn main() {
         ("13", day13::day13),
     ];
 
-    println!("Running the solutions {} times.", NB_RUNS);
+    println!("Running the solutions {} times.", nb_runs);
 
     let mut total_time = 0.;
+    println!("| DAY | Duration |      PART 1     |      Part 2     |");
+    println!("| :-: | :------: | :-------------: | :-------------: |");
     for (s, f) in SOLUTIONS.iter() {
         let (p1, p2) = f();
-        let avg_time: f64 = (0..NB_RUNS).map(|_| timeit(*f)).sum::<f64>() / NB_RUNS as f64;
+        let avg_time: f64 = (0..nb_runs).map(|_| timeit(*f)).sum::<f64>() / nb_runs as f64;
         total_time += avg_time;
-        println!(
-            "{title:} ({duration:})\nPart 1: {p1:}\nPart 2: {p2:}",
-            title = format!("#### DAY{} ####", s).yellow(),
-            duration = fmt_time(avg_time).green(),
-            p1 = p1,
-            p2 = p2,
-        );
+        println!("| {:3} | {:8} | {:15} | {:15} |", s.yellow(), fmt_time(avg_time).green(), p1, p2);
     }
     println!("\nTOTAL TIME: {}", fmt_time(total_time));
 }

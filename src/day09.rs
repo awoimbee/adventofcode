@@ -1,11 +1,8 @@
-const INPUT: &str = unsafe { std::str::from_utf8_unchecked(include_bytes!("../input/day09.txt")) };
+const INPUT: &str = include_str!("../input/day09.txt");
 const PREAMBLE: usize = 25;
 
 fn parse() -> impl Iterator<Item = usize> {
-    INPUT
-        .split('\n')
-        .filter(|s| !str::is_empty(s))
-        .map(|s| s.parse().unwrap())
+    INPUT.lines().map(|s| s.parse().unwrap())
 }
 
 fn try_sum(preamble: &[usize], target: usize) -> bool {

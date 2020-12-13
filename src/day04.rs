@@ -1,4 +1,4 @@
-const INPUT: &str = unsafe { std::str::from_utf8_unchecked(include_bytes!("../input/day04.txt")) };
+const INPUT: &str = include_str!("../input/day04.txt");
 
 struct Passport {
     present: u8,

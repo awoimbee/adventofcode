@@ -1,4 +1,4 @@
-const INPUT: &str = unsafe { std::str::from_utf8_unchecked(include_bytes!("../input/day08.txt")) };
+const INPUT: &str = include_str!("../input/day08.txt");
 
 #[derive(Clone, Copy)]
 enum Inst {
@@ -66,13 +66,9 @@ impl VM {
 
 fn parse() -> Vec<Instruction> {
     let mut instructions = Vec::new();
-
-    for line in INPUT.split('\n') {
-        if line.is_empty() {
-            break;
-        }
-        instructions.push(Instruction::from(line));
-    }
+    INPUT
+        .lines()
+        .for_each(|l| instructions.push(Instruction::from(l)));
     instructions
 }
 

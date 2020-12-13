@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-const INPUT: &[u8] = include_bytes!("../input/day06.txt");
+const INPUT: &str = include_str!("../input/day06.txt");
 
 pub fn day06() -> (String, String) {
     let mut count_part1: usize = 0;
@@ -8,7 +8,7 @@ pub fn day06() -> (String, String) {
     let mut answers: HashMap<u8, usize> = HashMap::new();
     let mut nb_people: usize = 0;
 
-    for line in INPUT.split(|&c| c == b'\n') {
+    for line in INPUT.lines() {
         if line.is_empty() {
             count_part1 += answers.len();
             count_part2 += answers.iter().filter(|(_, &nb)| nb == nb_people).count();
@@ -17,7 +17,7 @@ pub fn day06() -> (String, String) {
         } else {
             nb_people += 1;
             // letters are a-z, no need to handle utf-8
-            for c in line.iter() {
+            for c in line.as_bytes().iter() {
                 answers
                     .entry(*c)
                     .and_modify(|count| *count += 1)

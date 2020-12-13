@@ -1,10 +1,7 @@
-const INPUT: &str = unsafe { std::str::from_utf8_unchecked(include_bytes!("../input/day10.txt")) };
+const INPUT: &str = include_str!("../input/day10.txt");
 
 fn parse() -> impl Iterator<Item = u64> {
-    INPUT
-        .split('\n')
-        .filter(|s| !str::is_empty(s))
-        .map(|s| s.parse().unwrap())
+    INPUT.lines().map(|s| s.parse().unwrap())
 }
 
 pub fn day10() -> (String, String) {

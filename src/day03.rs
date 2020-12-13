@@ -1,4 +1,4 @@
-const INPUT: &str = unsafe { std::str::from_utf8_unchecked(include_bytes!("../input/day03.txt")) };
+const INPUT: &str = include_str!("../input/day03.txt");
 
 #[derive(Debug)]
 struct Rule {
@@ -19,8 +19,7 @@ impl<T> Pt<T> {
 
 fn parse() -> Vec<Vec<bool>> {
     INPUT
-        .split('\n')
-        .filter(|s| !s.is_empty())
+        .lines()
         .map(|s| s.as_bytes().iter().map(|&c| c == b'#').collect())
         .collect()
 }

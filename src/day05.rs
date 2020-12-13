@@ -1,4 +1,4 @@
-const INPUT: &str = unsafe { std::str::from_utf8_unchecked(include_bytes!("../input/day05.txt")) };
+const INPUT: &str = include_str!("../input/day05.txt");
 use bitvec::prelude::*;
 
 #[derive(Debug)]
@@ -63,11 +63,7 @@ impl Seat {
 }
 
 fn parse() -> Vec<Seat> {
-    INPUT
-        .split('\n')
-        .filter(|s| !s.is_empty())
-        .map(Seat::new)
-        .collect()
+    INPUT.lines().map(Seat::new).collect()
 }
 
 pub fn day05() -> (String, String) {

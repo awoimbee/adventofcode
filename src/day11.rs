@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use std::cell::UnsafeCell;
 
-const INPUT: &str = unsafe { std::str::from_utf8_unchecked(include_bytes!("../input/day11.txt")) };
+const INPUT: &str = include_str!("../input/day11.txt");
 
 const FLOOR: u8 = b'.';
 const OCCUPIED: u8 = b'#';
@@ -49,8 +49,7 @@ impl Map {
 
 fn parse() -> Map {
     INPUT
-        .split('\n')
-        .filter(|s| !str::is_empty(s))
+        .lines()
         .map(|s| s.as_bytes())
         .fold(Map::default(), |acc, x| acc.accumulate_row(x))
 }

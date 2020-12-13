@@ -1,4 +1,4 @@
-const INPUT: &str = unsafe { std::str::from_utf8_unchecked(include_bytes!("../input/day02.txt")) };
+const INPUT: &str = include_str!("../input/day02.txt");
 
 #[derive(Debug)]
 struct Rule {
@@ -8,7 +8,7 @@ struct Rule {
 }
 
 fn parse() -> impl Iterator<Item = (Rule, &'static [u8])> {
-    INPUT.split('\n').filter(|s| !s.is_empty()).map(|s| {
+    INPUT.lines().map(|s| {
         let mut t = s.split(": ");
         let rule = t.next().unwrap();
         let passwd = t.next().unwrap();

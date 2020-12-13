@@ -2,7 +2,7 @@ use fnv::FnvHashMap;
 use fnv::FnvHasher;
 use std::hash::Hasher;
 
-const INPUT: &str = unsafe { std::str::from_utf8_unchecked(include_bytes!("../input/day07.txt")) };
+const INPUT: &str = include_str!("../input/day07.txt");
 
 type BagMap = FnvHashMap<u64, Vec<(u64, u16)>>;
 
@@ -15,10 +15,7 @@ fn hash_str(s: &str) -> u64 {
 fn parse() -> BagMap {
     let mut bags = BagMap::default();
 
-    for line in INPUT.split('\n') {
-        if line.is_empty() {
-            break;
-        }
+    for line in INPUT.lines() {
         let mut tmp = line.split(" bags contain ");
         let parent_color = tmp.next().unwrap();
         let parent_color_hash = hash_str(parent_color);

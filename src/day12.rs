@@ -1,4 +1,4 @@
-const INPUT: &str = unsafe { std::str::from_utf8_unchecked(include_bytes!("../input/day12.txt")) };
+const INPUT: &str = include_str!("../input/day12.txt");
 // E S W N
 const DIRECTIONS: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 
@@ -73,13 +73,10 @@ impl Ship {
 }
 
 fn parse() -> Ship {
-    INPUT
-        .split('\n')
-        .filter(|s| !str::is_empty(s))
-        .fold(Ship::default(), |mut boat, s| {
-            boat.read_instr(s);
-            boat
-        })
+    INPUT.lines().fold(Ship::default(), |mut boat, s| {
+        boat.read_instr(s);
+        boat
+    })
 }
 
 pub fn day12() -> (String, String) {

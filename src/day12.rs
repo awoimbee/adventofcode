@@ -30,21 +30,25 @@ impl Ship {
         self.p2_waypoint.0 += dir.0 * val;
         self.p2_waypoint.1 += dir.1 * val;
     }
-    fn rotate(&mut self, degrees: usize, rot: &dyn Fn(&mut (i32, i32))) {
+    #[inline]
+    fn rotate<F>(&mut self, degrees: usize, rot: F)
+    where
+        F: Fn(&mut (i32, i32)),
+    {
         for _ in 0..((degrees % 360) / 90) {
             rot(&mut self.p1_dir);
             rot(&mut self.p2_waypoint);
         }
     }
     fn rotate_left(&mut self, degrees: usize) {
-        self.rotate(degrees, &|angle| {
+        self.rotate(degrees, &|angle: &mut (i32, i32)| {
             let tmp = angle.0;
             angle.0 = -angle.1;
             angle.1 = tmp;
         });
     }
     fn rotate_right(&mut self, degrees: usize) {
-        self.rotate(degrees, &|angle| {
+        self.rotate(degrees, &|angle: &mut (i32, i32)| {
             let tmp = angle.0;
             angle.0 = angle.1;
             angle.1 = -tmp;

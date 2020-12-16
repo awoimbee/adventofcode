@@ -13,6 +13,8 @@ mod day10;
 mod day11;
 mod day12;
 mod day13;
+mod day14;
+mod day15;
 
 use colored::*;
 use std::time::SystemTime;
@@ -40,7 +42,7 @@ fn main() {
         .get(1)
         .map(|s| s.parse::<usize>().expect("Not a valid number"))
         .unwrap_or(1);
-    const SOLUTIONS: [(&'static str, Day); 13] = [
+    const SOLUTIONS: [(&'static str, Day); 15] = [
         ("01", day01::day01),
         ("02", day02::day02),
         ("03", day03::day03),
@@ -54,6 +56,8 @@ fn main() {
         ("11", day11::day11),
         ("12", day12::day12),
         ("13", day13::day13),
+        ("14", day14::day14),
+        ("15", day15::day15),
     ];
 
     println!("Running the solutions {} times.", nb_runs);
@@ -65,7 +69,13 @@ fn main() {
         let (p1, p2) = f();
         let avg_time: f64 = (0..nb_runs).map(|_| timeit(*f)).sum::<f64>() / nb_runs as f64;
         total_time += avg_time;
-        println!("| {:3} | {:8} | {:15} | {:15} |", s.yellow(), fmt_time(avg_time).green(), p1, p2);
+        println!(
+            "| {:3} | {:8} | {:15} | {:15} |",
+            s.yellow(),
+            fmt_time(avg_time).green(),
+            p1,
+            p2
+        );
     }
     println!("\nTOTAL TIME: {}", fmt_time(total_time));
 }

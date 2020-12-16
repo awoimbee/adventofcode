@@ -79,13 +79,12 @@ fn p1(lines: &[Line]) -> usize {
             Line::MemSet(idx, val) => {
                 mem[*idx] = mask.mask_p1(*val);
             }
-            _ => (),
         }
     }
     mem.iter().sum::<u64>() as usize
 }
 
-fn bits(nb: u64) -> String {
+fn _bits(nb: u64) -> String {
     (0..36)
         .map(|i| match (nb >> (35 - i)) & 1 {
             1 => '1',

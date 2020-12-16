@@ -94,8 +94,7 @@ impl Map {
                                         && *y < self.height as isize
                                 })
                                 .map(|(x, y)| (y * self.width as isize + x) as usize)
-                                .filter(|i| self.seats[*i] == EMPTY)
-                                .next()
+                                .find(|i| self.seats[*i] == EMPTY)
                         })
                         .collect(),
                 )

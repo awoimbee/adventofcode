@@ -15,6 +15,7 @@ mod day12;
 mod day13;
 mod day14;
 mod day15;
+mod day16;
 
 use colored::*;
 use std::time::SystemTime;
@@ -42,7 +43,7 @@ fn main() {
         .get(1)
         .map(|s| s.parse::<usize>().expect("Not a valid number"))
         .unwrap_or(1);
-    const SOLUTIONS: [(&'static str, Day); 15] = [
+    const SOLUTIONS: [(&str, Day); 16] = [
         ("01", day01::day01),
         ("02", day02::day02),
         ("03", day03::day03),
@@ -58,6 +59,7 @@ fn main() {
         ("13", day13::day13),
         ("14", day14::day14),
         ("15", day15::day15),
+        ("16", day16::day16),
     ];
 
     println!("Running the solutions {} times.", nb_runs);

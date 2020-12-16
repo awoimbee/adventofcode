@@ -20,8 +20,8 @@ impl BinaryMask {
         let mut mask = Self::default();
         line.as_bytes().iter().enumerate().for_each(|(i, c)| {
             match *c {
-                b'1' => mask.one += 1 << 35 - i,
-                b'0' => mask.zero -= 1 << 35 - i,
+                b'1' => mask.one += 1 << (35 - i),
+                b'0' => mask.zero -= 1 << (35 - i),
                 b'X' => mask.float.push((35 - i) as u8),
                 _ => unreachable!(),
             };
@@ -31,7 +31,7 @@ impl BinaryMask {
     pub fn mask_p1(&self, val: u64) -> u64 {
         (val & self.zero) | self.one
     }
-    fn _mask_p2_float<'a>(float_mask: &[u8], val: u64) -> Vec<u64> {
+    fn _mask_p2_float(float_mask: &[u8], val: u64) -> Vec<u64> {
         if float_mask.is_empty() {
             vec![val]
         } else {
@@ -47,7 +47,7 @@ impl BinaryMask {
     }
 
     pub fn mask_p2(&self, mut val: u64) -> Vec<u64> {
-        val = val | self.one;
+        val |= self.one;
         Self::_mask_p2_float(&self.float, val)
     }
 }

@@ -3,6 +3,7 @@
 #![feature(const_mut_refs)]
 #![feature(destructuring_assignment)]
 #![feature(panic_info_message)]
+#![feature(generators, generator_trait)]
 
 mod day01;
 mod day02;
@@ -20,28 +21,30 @@ mod day13;
 mod day14;
 mod day15;
 mod day16;
+mod day17;
 
 use clap::{App, Arg};
 use colored::*;
 use std::time::SystemTime;
 
-const SOLUTIONS: [(&str, Day); 16] = [
-    ("01", day01::day01),
-    ("02", day02::day02),
-    ("03", day03::day03),
-    ("04", day04::day04),
-    ("05", day05::day05),
-    ("06", day06::day06),
-    ("07", day07::day07),
-    ("08", day08::day08),
-    ("09", day09::day09),
-    ("10", day10::day10),
-    ("11", day11::day11),
-    ("12", day12::day12),
-    ("13", day13::day13),
-    ("14", day14::day14),
-    ("15", day15::day15),
-    ("16", day16::day16),
+const SOLUTIONS: [Day; 17] = [
+    day01::day01,
+    day02::day02,
+    day03::day03,
+    day04::day04,
+    day05::day05,
+    day06::day06,
+    day07::day07,
+    day08::day08,
+    day09::day09,
+    day10::day10,
+    day11::day11,
+    day12::day12,
+    day13::day13,
+    day14::day14,
+    day15::day15,
+    day16::day16,
+    day17::day17,
 ];
 
 type Day = fn() -> (String, String);
@@ -116,7 +119,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("| DAY | Duration |      PART 1     |      Part 2     |");
     println!("| :-: | :------: | :-------------: | :-------------: |");
     for i in what_to_run {
-        let (s, f) = SOLUTIONS[i];
+        let f = SOLUTIONS[i];
 
         let (t, (p1, p2)) = timeit(f);
 
@@ -128,7 +131,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         total_time += avg_time;
         println!(
             "| {:3} | {:8} | {:15} | {:15} |",
-            s.yellow(),
+            (i + 1).to_string().yellow(),
             fmt_time(avg_time).green(),
             p1,
             p2

@@ -24,7 +24,7 @@ fn do_maffs_p1(slice: &mut str) -> i64 {
         );
         unsafe {
             (slice[idx_open..idx_close].as_bytes_mut())
-                .write(res.as_bytes())
+                .write_all(res.as_bytes())
                 .unwrap();
         }
     }
@@ -86,21 +86,20 @@ fn do_maffs_p2(slice: &mut str) -> i64 {
         );
         unsafe {
             (slice[idx_open..idx_close].as_bytes_mut())
-                .write(res.as_bytes())
+                .write_all(res.as_bytes())
                 .unwrap();
         }
     }
     let mut tokens = slice
         .split(' ')
         .filter(|s| !s.is_empty())
-        .map(|t| Token::from(t))
+        .map(Token::from)
         .collect::<Vec<_>>();
 
     while let Some((idx, _)) = tokens
         .iter()
         .enumerate()
-        .filter(|(_, t)| matches!(t, Token::Op('+')))
-        .next()
+        .find(|(_, t)| matches!(t, Token::Op('+')))
     {
         tokens[idx - 1] = match (&tokens[idx - 1], &tokens[idx + 1]) {
             (Token::Nb(l), Token::Nb(r)) => Token::Nb(l + r),

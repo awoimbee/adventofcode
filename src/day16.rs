@@ -2,7 +2,7 @@ const INPUT: &str = include_str!("../input/day16.txt");
 
 fn p1_bis(
     nearby_tickets: impl Iterator<Item = Vec<u64>>,
-    schema: &Vec<(&'static str, [[u64; 2]; 2])>,
+    schema: &[(&'static str, [[u64; 2]; 2])],
 ) -> (Vec<Vec<u64>>, u64) {
     let mut invalid_sum = 0;
     let valid_tickets = nearby_tickets
@@ -44,8 +44,8 @@ fn p2(schema: Vec<(&str, [[u64; 2]; 2])>, ticket: Vec<u64>, nearby: Vec<Vec<u64>
 }
 
 fn p2_generate_confusion_matrix(
-    nearby: &Vec<Vec<u64>>,
-    schema: &Vec<(&str, [[u64; 2]; 2])>,
+    nearby: &[Vec<u64>],
+    schema: &[(&str, [[u64; 2]; 2])],
 ) -> Vec<Vec<bool>> {
     let columns = p2_transpose(&nearby);
     let m = schema.len();
@@ -57,10 +57,10 @@ fn p2_generate_confusion_matrix(
             }
         }
     }
-    return ans;
+    ans
 }
 
-fn p2_transpose(nearby: &Vec<Vec<u64>>) -> Vec<Vec<u64>> {
+fn p2_transpose(nearby: &[Vec<u64>]) -> Vec<Vec<u64>> {
     let m = nearby[0].len();
 
     let mut ans = vec![Vec::new(); m];
@@ -69,7 +69,7 @@ fn p2_transpose(nearby: &Vec<Vec<u64>>) -> Vec<Vec<u64>> {
             ans[i].push(number);
         }
     }
-    return ans;
+    ans
 }
 
 fn p2_check(numbers: &[u64], intervals: &[[u64; 2]]) -> bool {
@@ -80,8 +80,8 @@ fn p2_check(numbers: &[u64], intervals: &[[u64; 2]]) -> bool {
     })
 }
 
-fn p2_solve(valid: &Vec<Vec<bool>>) -> Vec<usize> {
-    let mut valid = valid.clone();
+fn p2_solve(valid: &[Vec<bool>]) -> Vec<usize> {
+    let mut valid = valid.to_owned();
 
     let mut ans = vec![999_999; valid.len()];
     for _ in 0..valid.len() {
@@ -93,7 +93,7 @@ fn p2_solve(valid: &Vec<Vec<bool>>) -> Vec<usize> {
                 if v == 0 {
                     return 999_999;
                 }
-                return v;
+                v
             })
             .unwrap();
         let indexes: Vec<_> = v
@@ -112,7 +112,7 @@ fn p2_solve(valid: &Vec<Vec<bool>>) -> Vec<usize> {
         ans[i] = indexes[0];
     }
 
-    return ans;
+    ans
 }
 
 pub fn day16() -> (String, String) {
@@ -139,8 +139,7 @@ pub fn day16() -> (String, String) {
         .next()
         .unwrap()
         .lines()
-        .skip(1)
-        .next()
+        .nth(1)
         .unwrap()
         .split(',')
         .map(|nb| nb.parse().unwrap())

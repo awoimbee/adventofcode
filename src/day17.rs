@@ -67,7 +67,7 @@ impl GameOfLife3D {
         });
         map
     }
-    fn count_neighbors<'a>(&'a self, org: Pt3) -> usize {
+    fn count_neighbors(&self, org: Pt3) -> usize {
         let mut neighbors = 0;
         let add = |a: Idx, b: i32| (a as i32 + b) as Idx;
         for dx in -1..=1 {
@@ -183,7 +183,7 @@ impl GameOfLife4D {
         map
     }
 
-    fn count_neighbors<'a>(&'a self, org: Pt4) -> usize {
+    fn count_neighbors(&self, org: Pt4) -> usize {
         let mut neighbors = 0;
 
         let add = |a: Idx, b: i32| (a as i32 + b) as Idx;

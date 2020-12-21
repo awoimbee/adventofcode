@@ -27,54 +27,68 @@ fn parse() -> (Vec<Token>, Vec<&'static str>) {
     (rules, data)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Token {
     Char(u8),
     Rules((Vec<usize>, Option<Vec<usize>>)),
 }
+impl std::fmt::Display for Token {
+    fn fmt(&self, w: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Char(c) => w.write_fmt(format_args!("Char({})", *c as char)),
+            Self::Rules((r0, r1)) => w.write_fmt(format_args!("Rules({:?}, {:?}", r0, r1)),
+        }
+    }
+}
 
 impl Token {
-    pub fn inner_matches(&self, rules: &[Token], data: &str, mut idx: usize) -> (usize, bool) {
-        println!("-> data: {}", &data[idx..]);
+    fn inner_match_rules(&self, rules: &[Token], data: &str, idx: usize, r: &[usize]) -> Vec<usize> {
+        let mut tmp_res = vec![idx];
+        r.iter().all(|i| {
+            let tok = &rules[*i];
+            tmp_res = tmp_res.drain(..).map(|tmp_idx| {
+                tok.inner_matches(rules, data, tmp_idx)
+            }).flatten().collect();
+            !tmp_res.is_empty()
+        });
+        tmp_res
+    }
+
+    fn inner_matches(&self, rules: &[Token], data: &str, idx: usize) -> Vec<usize> {
         let ret = match self {
             Self::Char(c) => {
                 if data.len() > idx && data.as_bytes()[idx] == *c {
-                    println!("matched ! {} {}", data.as_bytes()[idx] as char, *c as char);
-                    (idx + 1, true)
+                    vec![idx + 1]
                 } else {
-                    (idx, false)
+                    Vec::new()
                 }
             },
-            Self::Rules((r0, opt_r1)) => {
-                let rules_ids = if let Some(r1) = opt_r1 {
-                    vec![r0, r1]
+            Self::Rules((r0, None)) => {
+                self.inner_match_rules(rules, data, idx, r0)
+            }
+            Self::Rules((r0, Some(r1))) => {
+                let mut lft = self.inner_match_rules(rules, data, idx, r0);
+                let mut rgt = self.inner_match_rules(rules, data, idx, r1);
+                if !lft.is_empty() && !rgt.is_empty() {
+                    lft.drain(..).chain(rgt.drain(..)).collect()
+                } else if !lft.is_empty() {
+                    lft
                 } else {
-                    vec![r0]
-                };
-                let ret = rules_ids.iter().any(|r| {
-                    let mut tmp_idx = idx;
-                    let ret = r.iter().all(|i| {
-                        println!("{}: matching token: {}", data, i);
-                        let tok = &rules[*i];
-                        let ret = tok.inner_matches(rules, data, tmp_idx);
-                        tmp_idx = ret.0;
-                        ret.1
-                    });
-                    if ret {
-                        idx = tmp_idx;
-                    }
-                    ret
-                });
-                (idx, ret)
+                    rgt
+                }
             }
         };
-        println!("<- ret: {:?}", ret);
         ret
     }
 
     pub fn matches(&self, rules: &[Token], data: &str) -> bool {
-        let (idx, res) = self.inner_matches(rules, data, 0);
-        res && idx == data.len()
+        let matches = self.inner_matches(rules, data, 0);
+        for idx in matches {
+            if idx == data.len() {
+                return true;
+            }
+        }
+        false
     }
 }
 
@@ -92,9 +106,9 @@ pub fn day19() -> (String, String) {
     let (mut rules, data) = parse();
 
     // let p1 = "";
-    let p2 = "";
+    // let p2 = "";
     let p1 = p1(&rules, &data);
-    // let p2 = p2(&mut rules, &data);
+    let p2 = p2(&mut rules, &data);
 
     (format!("{}", p1), format!("{}", p2))
 }

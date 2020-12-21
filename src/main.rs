@@ -23,12 +23,13 @@ mod day15;
 mod day16;
 mod day17;
 mod day18;
+mod day19;
 
 use clap::{App, Arg};
 use colored::*;
 use std::time::SystemTime;
 
-const SOLUTIONS: [Day; 18] = [
+const SOLUTIONS: [Day; 19] = [
     day01::day01,
     day02::day02,
     day03::day03,
@@ -47,6 +48,7 @@ const SOLUTIONS: [Day; 18] = [
     day16::day16,
     day17::day17,
     day18::day18,
+    day19::day19,
 ];
 
 type Day = fn() -> (String, String);

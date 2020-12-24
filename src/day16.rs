@@ -155,5 +155,5 @@ pub fn day16() -> (String, String) {
     let (nearby_tickets, p1) = p1_bis(nearby_tickets, &schema);
     let p2 = p2(schema, my_ticket, nearby_tickets);
 
-    (format!("{}", p1), format!("{}", p2))
+    (p1.to_string(), p2.to_string())
 }

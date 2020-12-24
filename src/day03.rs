@@ -48,5 +48,5 @@ pub fn day03() -> (String, String) {
         .product::<u32>()
         * p1;
 
-    (format!("{}", p1), format!("{}", p2))
+    (p1.to_string(), p2.to_string())
 }

@@ -248,5 +248,5 @@ pub fn day17() -> (String, String) {
     (0..6).for_each(|_| gol_4d.run_cycle());
     let p2 = gol_4d.nb_live();
 
-    (format!("{}", p1), format!("{}", p2))
+    (p1.to_string(), p2.to_string())
 }

@@ -4,6 +4,9 @@
 #![feature(destructuring_assignment)]
 #![feature(panic_info_message)]
 #![feature(generators, generator_trait)]
+#![feature(const_generics)]
+#![feature(or_patterns)]
+#![feature(const_fn_transmute)]
 
 mod day01;
 mod day02;
@@ -24,12 +27,18 @@ mod day16;
 mod day17;
 mod day18;
 mod day19;
+mod day20;
+mod day21;
+mod day22;
+mod day23;
+mod day24;
+mod day25;
 
 use clap::{App, Arg};
 use colored::*;
 use std::time::SystemTime;
 
-const SOLUTIONS: [Day; 19] = [
+const SOLUTIONS: [Day; 25] = [
     day01::day01,
     day02::day02,
     day03::day03,
@@ -49,6 +58,12 @@ const SOLUTIONS: [Day; 19] = [
     day17::day17,
     day18::day18,
     day19::day19,
+    day20::day20,
+    day21::day21,
+    day22::day22,
+    day23::day23,
+    day24::day24,
+    day25::day25,
 ];
 
 type Day = fn() -> (String, String);

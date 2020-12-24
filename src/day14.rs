@@ -116,5 +116,5 @@ pub fn day14() -> (String, String) {
 
     let p1 = p1(&lines);
     let p2 = p2(&lines);
-    (format!("{}", p1), format!("{}", p2))
+    (p1.to_string(), p2.to_string())
 }

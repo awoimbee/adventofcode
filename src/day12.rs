@@ -89,5 +89,5 @@ pub fn day12() -> (String, String) {
     let p1 = boat.get_manhattan_dist1();
     let p2 = boat.get_manhattan_dist2();
 
-    (format!("{}", p1), format!("{}", p2))
+    (p1.to_string(), p2.to_string())
 }

@@ -15,8 +15,19 @@ fn parse() -> (Vec<Token>, Vec<&'static str>) {
                 Token::Char(rules_str.as_bytes()[1])
             } else {
                 let mut rules_sep = rules_str.split('|');
-                let rules0 = rules_sep.next().unwrap().trim().split(' ').map(|nb| nb.parse().unwrap()).collect();
-                let rules1 = rules_sep.next().map(|r| {r.trim().split(' ').map(|nb| nb.parse().unwrap()).collect::<Vec<_>>()});
+                let rules0 = rules_sep
+                    .next()
+                    .unwrap()
+                    .trim()
+                    .split(' ')
+                    .map(|nb| nb.parse().unwrap())
+                    .collect();
+                let rules1 = rules_sep.next().map(|r| {
+                    r.trim()
+                        .split(' ')
+                        .map(|nb| nb.parse().unwrap())
+                        .collect::<Vec<_>>()
+                });
                 Token::Rules((rules0, rules1))
             };
         });
@@ -42,13 +53,21 @@ impl std::fmt::Display for Token {
 }
 
 impl Token {
-    fn inner_match_rules(&self, rules: &[Token], data: &str, idx: usize, r: &[usize]) -> Vec<usize> {
+    fn inner_match_rules(
+        &self,
+        rules: &[Token],
+        data: &str,
+        idx: usize,
+        r: &[usize],
+    ) -> Vec<usize> {
         let mut tmp_res = vec![idx];
         r.iter().all(|i| {
             let tok = &rules[*i];
-            tmp_res = tmp_res.drain(..).map(|tmp_idx| {
-                tok.inner_matches(rules, data, tmp_idx)
-            }).flatten().collect();
+            tmp_res = tmp_res
+                .drain(..)
+                .map(|tmp_idx| tok.inner_matches(rules, data, tmp_idx))
+                .flatten()
+                .collect();
             !tmp_res.is_empty()
         });
         tmp_res
@@ -62,10 +81,8 @@ impl Token {
                 } else {
                     Vec::new()
                 }
-            },
-            Self::Rules((r0, None)) => {
-                self.inner_match_rules(rules, data, idx, r0)
             }
+            Self::Rules((r0, None)) => self.inner_match_rules(rules, data, idx, r0),
             Self::Rules((r0, Some(r1))) => {
                 let mut lft = self.inner_match_rules(rules, data, idx, r0);
                 let mut rgt = self.inner_match_rules(rules, data, idx, r1);
@@ -110,5 +127,5 @@ pub fn day19() -> (String, String) {
     let p1 = p1(&rules, &data);
     let p2 = p2(&mut rules, &data);
 
-    (format!("{}", p1), format!("{}", p2))
+    (p1.to_string(), p2.to_string())
 }

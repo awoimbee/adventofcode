@@ -156,5 +156,5 @@ pub fn day11() -> (String, String) {
     let p2_map = map2.seats_indices_part2();
     let p2 = run_simulation(map2.seats, p2_map, 5);
 
-    (format!("{}", p1), format!("{}", p2))
+    (p1.to_string(), p2.to_string())
 }

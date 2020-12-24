@@ -58,5 +58,5 @@ fn solve() -> (usize, usize) {
 pub fn day15() -> (String, String) {
     let (p1, p2) = solve();
 
-    (format!("{}", p1), format!("{}", p2))
+    (p1.to_string(), p2.to_string())
 }

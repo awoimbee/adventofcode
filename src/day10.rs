@@ -34,5 +34,5 @@ pub fn day10() -> (String, String) {
         (nb_jmp_1 * nb_jmp_3, *dp.last().unwrap())
     };
 
-    (format!("{}", p1), format!("{}", p2))
+    (p1.to_string(), p2.to_string())
 }

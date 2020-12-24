@@ -145,5 +145,5 @@ pub fn day18() -> (String, String) {
     let p1 = p1();
     let p2 = p2();
 
-    (format!("{}", p1), format!("{}", p2))
+    (p1.to_string(), p2.to_string())
 }

@@ -62,5 +62,5 @@ pub fn day13() -> (String, String) {
     let (disp, buses, residues) = parse();
     let p1 = p1(disp, &buses);
     let p2 = p2(&residues, &buses);
-    (format!("{}", p1), format!("{}", p2))
+    (p1.to_string(), p2.to_string())
 }

@@ -17,17 +17,14 @@ impl Range {
         Self { min, max }
     }
     pub fn divide(&mut self, upper_half: bool) {
-        // println!("defore div {} {}", self.min, self.max);
         let middle = (self.max - self.min) / 2 + self.min;
         if upper_half {
             self.min = middle + 1;
         } else {
             self.max = middle;
         }
-        // println!("div {} {}", self.min, self.max);
     }
     pub fn final_value(&self) -> u32 {
-        // println!("{} {}", self.min, self.max);
         assert!(self.min == self.max);
         self.min
     }
@@ -42,7 +39,6 @@ impl Seat {
     pub fn new(id: &str) -> Self {
         let mut row = Range::new(0, 127);
         let mut col = Range::new(0, 7);
-        // println!("{}", id);
         for c in id.as_bytes() {
             match c {
                 b'B' => row.divide(true),

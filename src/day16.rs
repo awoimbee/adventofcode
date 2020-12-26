@@ -103,8 +103,7 @@ fn p2_solve(valid: &[Vec<bool>]) -> Vec<usize> {
             .map(|(i, _)| i)
             .collect();
         if indexes.len() > 1 {
-            println!("This is very bad: {:?}", indexes);
-            panic!();
+            unreachable!(format!("{:?}", indexes));
         }
         for i in 0..valid.len() {
             valid[i][indexes[0]] = false;

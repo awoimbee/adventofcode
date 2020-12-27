@@ -376,11 +376,10 @@ fn place_image_pieces(
     let first_tile = tiles.values().next().unwrap();
     let starting_position = (0, 0).into();
 
-    let mut image_pieces: HashMap<Pos, Image> =
-        [(starting_position, first_tile.image.clone())]
-            .iter()
-            .cloned()
-            .collect();
+    let mut image_pieces: HashMap<Pos, Image> = [(starting_position, first_tile.image.clone())]
+        .iter()
+        .cloned()
+        .collect();
 
     let mut queue: VecDeque<(Pos, Tile)> =
         VecDeque::from(vec![(starting_position, first_tile.clone())]);
@@ -527,7 +526,7 @@ fn part2(tiles_and_edges: &(HashMap<TileId, Tile>, HashMap<EdgeChecksum, Vec<Til
 }
 
 pub fn day20() -> (String, String) {
-    let parsed  = parse(INPUT);
+    let parsed = parse(INPUT);
     let p1 = part1(&parsed);
     let p2 = part2(&parsed);
     (p1.to_string(), p2.to_string())

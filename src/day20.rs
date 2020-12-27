@@ -51,7 +51,6 @@ impl TileEdge {
             _ => unreachable!(),
         };
         let rev = val.reverse_bits() >> 6;
-        // println!("Side {:5}: {:#b} {:#b}", SIDE, val, rev);
         Self { val, rev }
     }
 }
@@ -60,7 +59,7 @@ struct Tile {
     pub id: u16,
     pub rot: Rotation,
     pub edges: [TileEdge; 4],
-    pub matches: u8,
+    pub matches: Vec<usize>,
 }
 
 impl Tile {
@@ -88,20 +87,44 @@ impl Tile {
             id,
             rot: Rotation(0),
             edges,
-            matches: 0,
+            matches: Vec::with_capacity(4),
         }
     }
-    pub unsafe fn matches(&mut self, tiles: &[UnsafeCell<Tile>]) {
-        for t in tiles
+    // pub unsafe fn matches(&mut self, tiles: &[UnsafeCell<Tile>]) {
+    //     'retry: loop {
+
+
+    //     }
+
+    //     for t in tiles
+    //         .into_iter()
+    //         .map(|t| std::mem::transmute::<*mut Tile, &mut Tile>(t.get()))
+    //     {
+    //         for host_side in 0..4 {
+    //             for guest_side in 0..4 {
+    //                 if self.edges[host_side].val == t.edges[guest_side].val
+    //                     || self.edges[host_side].rev == t.edges[guest_side].val
+    //                 {
+    //                     self.matches += 1;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+    pub unsafe fn quick_matches(&mut self, tiles: &[UnsafeCell<Tile>]) {
+        assert!(self.matches.is_empty());
+        'tiles: for (i, t) in tiles
             .into_iter()
-            .map(|t| std::mem::transmute::<*mut Tile, &mut Tile>(t.get()))
-        {
+            .enumerate()
+            .map(|(i, t)| (i, std::mem::transmute::<*mut Tile, &mut Tile>(t.get()))
+        ) {
             for host_side in 0..4 {
                 for guest_side in 0..4 {
                     if self.edges[host_side].val == t.edges[guest_side].val
                         || self.edges[host_side].rev == t.edges[guest_side].val
                     {
-                        self.matches += 1;
+                        self.matches.push(i);
+                        continue 'tiles;
                     }
                 }
             }
@@ -109,29 +132,73 @@ impl Tile {
     }
 }
 
-fn parse() -> Vec<UnsafeCell<Tile>> {
-    INPUT
+fn parse<const INPUT: &'static str>() -> Vec<UnsafeCell<Tile>> {
+    let tiles: Vec<UnsafeCell<Tile>> = INPUT
         .split("\n\n")
         .map(|t| UnsafeCell::new(Tile::from_str(t)))
-        .collect()
+        .collect();
+    for t in tiles.iter() {
+        unsafe {
+            std::mem::transmute::<_, &mut Tile>(t.get()).quick_matches(&tiles);
+        }
+    }
+    tiles
+}
+
+fn p1(tiles: &[UnsafeCell<Tile>]) -> u64 {
+    let mut val = 1;
+    let mut corner_nb = 0;
+    for t in tiles.iter().map(|t| unsafe { std::mem::transmute::<_, &Tile>(t.get())}) {
+        if t.matches.len() == 3 {
+            val *= t.id as u64;
+            corner_nb += 1;
+        }
+    }
+    assert!(corner_nb == 4);
+    val
 }
 
 pub fn day20() -> (String, String) {
-    let mut tiles = parse();
+    let tiles = parse::<INPUT>();
 
-    for t in tiles.iter() {
-        let tt = unsafe { std::mem::transmute::<*mut Tile, &mut Tile>(t.get()) };
+    // for t in tiles.iter().map(|t| unsafe { std::mem::transmute::<_, &Tile>(t.get())}) {
+    //     println!("{:?}", t.matches);
+    // }
 
-        // println!("{}", tt.matches);
-    }
-
-    // let int: u16 = 1;
-    // println!("{:#x} -> {:#x}", int, int.reverse_bits() >> 15);
-
-    let p1 = "undefined";
+    let p1 = p1(&tiles);
     let p2 = "undefined";
     // let p1 = p1(&rules, &data);
     // let p2 = p2(&mut rules, &data);
 
     (p1.to_string(), p2.to_string())
+}
+
+mod tests {
+    use super::*;
+
+    const TEST_INPUT: &str = concat!(
+        "Tile 2311:\n..##.#..#.\n##..#.....\n#...##..#.\n####.#...#\n##.##.###.\n##...#.###\n.#.#.#..##\n..#....#..\n###...#.#.\n..###..###",
+        "\n\n",
+        "Tile 1951:\n#.##...##.\n#.####...#\n.....#..##\n#...######\n.##.#....#\n.###.#####\n###.##.##.\n.###....#.\n..#.#..#.#\n#...##.#..",
+        "\n\n",
+        "Tile 1171:\n####...##.\n#..##.#..#\n##.#..#.#.\n.###.####.\n..###.####\n.##....##.\n.#...####.\n#.##.####.\n####..#...\n.....##...",
+        "\n\n",
+        "Tile 1427:\n###.##.#..\n.#..#.##..\n.#.##.#..#\n#.#.#.##.#\n....#...##\n...##..##.\n...#.#####\n.#.####.#.\n..#..###.#\n..##.#..#.",
+        "\n\n",
+        "Tile 1489:\n##.#.#....\n..##...#..\n.##..##...\n..#...#...\n#####...#.\n#..#.#.#.#\n...#.#.#..\n##.#...##.\n..##.##.##\n###.##.#..",
+        "\n\n",
+        "Tile 2473:\n#....####.\n#..#.##...\n#.##..#...\n######.#.#\n.#...#.#.#\n.#########\n.###.#..#.\n########.#\n##...##.#.\n..###.#.#.",
+        "\n\n",
+        "Tile 2971:\n..#.#....#\n#...###...\n#.#.###...\n##.##..#..\n.#####..##\n.#..####.#\n#..#.#..#.\n..####.###\n..#.#.###.\n...#.#.#.#",
+        "\n\n",
+        "Tile 2729:\n...#.#.#.#\n####.#....\n..#.#.....\n....#..#.#\n.##..##.#.\n.#.####...\n####.#.#..\n##.####...\n##..#.##..\n#.##...##.",
+        "\n\n",
+        "Tile 3079:\n#.#.#####.\n.#..######\n..#.......\n######....\n####.#..#.\n.#...#.##.\n#.#####.##\n..#.###...\n..#.......\n..#.###..."
+    );
+
+    #[test]
+    fn test_p1() {
+        let parsed = parse::<TEST_INPUT>();
+        assert!(p1(&parsed) == 20899048083289);
+    }
 }

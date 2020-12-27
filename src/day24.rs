@@ -150,6 +150,7 @@ pub fn day24() -> (String, String) {
     (p1.to_string(), p2.to_string())
 }
 
+#[cfg(test)]
 mod test {
     use super::*;
 

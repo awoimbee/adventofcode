@@ -40,8 +40,9 @@ pub fn day25() -> (String, String) {
     (p1.to_string(), p2.to_string())
 }
 
+#[cfg(test)]
 mod test {
-    use super::{calculate_loopsize, calculate_privkey};
+    use super::*;
 
     #[test]
     fn loopsize() {

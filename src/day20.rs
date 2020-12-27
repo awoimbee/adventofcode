@@ -1,204 +1,561 @@
-#![allow(dead_code)]
-
+//
+// I cheated a bit on this one
+// No way I was doing the sea monter part without external help
+//
 const INPUT: &str = include_str!("../input/day20.txt");
 
-const TILE_SIZE: usize = 10; // tiles are squares
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::ops::{Add, Not};
 
-use std::cell::UnsafeCell;
+const TILE_SIZE: i32 = 10;
+const CROPPED_TILE_SIZE: i32 = TILE_SIZE - 2;
 
-use bitvec::prelude::*;
+type Pixel = bool;
 
-struct Rotation(u8);
-
-struct TileEdge {
-    pub val: u16,
-    pub rev: u16,
+#[derive(Copy, Clone)]
+enum EdgeIndex {
+    Upper = 0,
+    Right = 1,
+    Lower = 2,
+    Left = 3,
 }
 
-impl TileEdge {
-    pub fn new<const SIDE: &'static str>(tile: &[[bool; 10]; 10]) -> Self {
-        let mut val: u16 = 0;
-        let val_window = val.view_bits_mut::<Lsb0>();
-        match SIDE {
-            "UP" => {
-                for (i, px) in tile[0].iter().enumerate() {
-                    if *px {
-                        val_window.set(i, true);
-                    }
-                }
-            }
-            "DOWN" => {
-                for (i, px) in tile[9].iter().enumerate() {
-                    if *px {
-                        val_window.set(i, true);
-                    }
-                }
-            }
-            "LEFT" => {
-                for (i, t_l) in tile.iter().enumerate() {
-                    if t_l[0] {
-                        val_window.set(i, true);
-                    }
-                }
-            }
-            "RIGHT" => {
-                for (i, t_l) in tile.iter().enumerate() {
-                    if t_l[9] {
-                        val_window.set(i, true);
-                    }
-                }
-            }
-            _ => unreachable!(),
-        };
-        let rev = val.reverse_bits() >> 6;
-        Self { val, rev }
+impl Not for &EdgeIndex {
+    type Output = EdgeIndex;
+
+    fn not(self) -> Self::Output {
+        use EdgeIndex::*;
+
+        match self {
+            Upper => Lower,
+            Right => Left,
+            Lower => Upper,
+            Left => Right,
+        }
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+struct Pt2 {
+    x: i32,
+    y: i32,
+}
+
+type Pos = Pt2;
+type Dir = Pt2;
+
+impl Add<Pt2> for Pt2 {
+    type Output = Self;
+
+    fn add(self, rhs: Pt2) -> Self::Output {
+        Pt2 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl From<(i32, i32)> for Pt2 {
+    fn from((x, y): (i32, i32)) -> Self {
+        Pt2 { x, y }
+    }
+}
+
+impl From<&EdgeIndex> for Dir {
+    fn from(edge_index: &EdgeIndex) -> Self {
+        use EdgeIndex::*;
+
+        match edge_index {
+            Upper => (0, -1).into(),
+            Right => (1, 0).into(),
+            Lower => (0, 1).into(),
+            Left => (-1, 0).into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct Image(HashMap<Pos, Pixel>);
+
+impl Image {
+    fn normalize(&self) -> Image {
+        let min_x = self.0.keys().map(|position| position.x).min().unwrap();
+        let min_y = self.0.keys().map(|position| position.y).min().unwrap();
+
+        Image(
+            self.0
+                .iter()
+                .map(|(position, value)| (*position + (-min_x, -min_y).into(), *value))
+                .collect(),
+        )
+    }
+
+    fn transform(&self, source_index: &EdgeIndex, target_index: &EdgeIndex, flip: bool) -> Image {
+        let source: Dir = source_index.into();
+        let target: Dir = target_index.into();
+
+        let cos = source.x * target.x + source.y * target.y;
+        let sin = source.x * target.y - source.y * target.x;
+
+        let mut pixels: HashMap<Pos, Pixel> = self
+            .0
+            .iter()
+            .map(|(position, value)| {
+                (
+                    (
+                        position.x * cos - position.y * sin,
+                        position.x * sin + position.y * cos,
+                    )
+                        .into(),
+                    *value,
+                )
+            })
+            .collect();
+
+        use EdgeIndex::*;
+
+        if flip {
+            match &target_index {
+                Upper | Lower => {
+                    pixels = pixels
+                        .iter()
+                        .map(|(position, value)| ((-position.x, position.y).into(), *value))
+                        .collect()
+                }
+                Right | Left => {
+                    pixels = pixels
+                        .iter()
+                        .map(|(position, value)| ((position.x, -position.y).into(), *value))
+                        .collect()
+                }
+            }
+        }
+
+        Image(pixels).normalize()
+    }
+
+    fn rotate_once(&self) -> Image {
+        use EdgeIndex::*;
+        self.transform(&Left, &Upper, false)
+    }
+
+    fn flip(&self) -> Image {
+        use EdgeIndex::*;
+        self.transform(&Upper, &Upper, true)
+    }
+}
+
+type TileId = u64;
+type EdgeChecksum = usize;
+
+#[derive(Clone)]
 struct Tile {
-    pub id: u16,
-    pub rot: Rotation,
-    pub edges: [TileEdge; 4],
-    pub matches: Vec<usize>,
+    id: TileId,
+    image: Image,
+    edges_checksums: [EdgeChecksum; 4],
+    flipped_edges_checksums: [EdgeChecksum; 4],
 }
 
 impl Tile {
-    pub fn from_str(s: &str) -> Self {
-        let mut lines = s.lines();
-        let id = lines.next().unwrap()[5..9].parse().unwrap();
-        let tile = {
-            let mut t = [[false; 10]; 10];
-            lines.enumerate().for_each(|(y, l)| {
-                l.as_bytes()
-                    .iter()
-                    .enumerate()
-                    .for_each(|(x, c)| t[y][x] = *c == b'#');
-            });
-            t
-        };
-        let edges = [
-            TileEdge::new::<"UP">(&tile),
-            TileEdge::new::<"DOWN">(&tile),
-            TileEdge::new::<"LEFT">(&tile),
-            TileEdge::new::<"RIGHT">(&tile),
-        ];
+    fn transform(&self, source_index: &EdgeIndex, target_index: &EdgeIndex, flip: bool) -> Tile {
+        let image = self.image.transform(source_index, target_index, flip);
 
-        Self {
-            id,
-            rot: Rotation(0),
-            edges,
-            matches: Vec::with_capacity(4),
+        let mut edges_checksums = [0; 4];
+        let mut flipped_edges_checksums = [0; 4];
+
+        for i in 0..4 {
+            edges_checksums[i] = self.edges_checksums
+                [(4 + i + (*source_index) as usize - (*target_index) as usize) % 4];
+            flipped_edges_checksums[i] = self.flipped_edges_checksums
+                [(4 + i + (*source_index) as usize - (*target_index) as usize) % 4];
+        }
+
+        use EdgeIndex::*;
+
+        if flip {
+            let [upper, right, lower, left] = edges_checksums;
+            let [upper_flipped, right_flipped, lower_flipped, left_flipped] =
+                flipped_edges_checksums;
+
+            match &target_index {
+                Upper | Lower => {
+                    edges_checksums = [upper_flipped, left_flipped, lower_flipped, right_flipped];
+                    flipped_edges_checksums = [upper, left, lower, right];
+                }
+                Right | Left => {
+                    edges_checksums = [lower_flipped, right_flipped, upper_flipped, left_flipped];
+                    flipped_edges_checksums = [lower, right, upper, left];
+                }
+            }
+        }
+
+        Tile {
+            id: self.id,
+            image,
+            edges_checksums,
+            flipped_edges_checksums,
         }
     }
-    // pub unsafe fn matches(&mut self, tiles: &[UnsafeCell<Tile>]) {
-    //     'retry: loop {
+}
 
+fn parse_tile(tile_str: &str) -> Tile {
+    let id_str = tile_str.lines().next().unwrap();
+    let id = id_str[5..id_str.len() - 1].parse::<TileId>().unwrap();
 
-    //     }
+    let pixels: HashMap<Pos, Pixel> = tile_str
+        .lines()
+        .skip(1)
+        .enumerate()
+        .map(move |(y, line)| {
+            line.chars()
+                .enumerate()
+                .map(move |(x, c)| ((x as i32, y as i32).into(), c == '#'))
+        })
+        .flatten()
+        .collect();
 
-    //     for t in tiles
-    //         .into_iter()
-    //         .map(|t| std::mem::transmute::<*mut Tile, &mut Tile>(t.get()))
-    //     {
-    //         for host_side in 0..4 {
-    //             for guest_side in 0..4 {
-    //                 if self.edges[host_side].val == t.edges[guest_side].val
-    //                     || self.edges[host_side].rev == t.edges[guest_side].val
-    //                 {
-    //                     self.matches += 1;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-    pub unsafe fn quick_matches(&mut self, tiles: &[UnsafeCell<Tile>]) {
-        assert!(self.matches.is_empty());
-        'tiles: for (i, t) in tiles
-            .into_iter()
-            .enumerate()
-            .map(|(i, t)| (i, std::mem::transmute::<*mut Tile, &mut Tile>(t.get()))
-        ) {
-            for host_side in 0..4 {
-                for guest_side in 0..4 {
-                    if self.edges[host_side].val == t.edges[guest_side].val
-                        || self.edges[host_side].rev == t.edges[guest_side].val
-                    {
-                        self.matches.push(i);
-                        continue 'tiles;
+    let edges_checksums = edges_checksums(&pixels);
+    let flipped_edges_checksums = flipped_edges_checksums(&pixels);
+
+    let pixels = pixels
+        .into_iter()
+        .filter(|(position, _)| {
+            position.x != 0
+                && position.y != 0
+                && position.x != TILE_SIZE - 1
+                && position.y != TILE_SIZE - 1
+        })
+        .collect();
+
+    Tile {
+        id,
+        image: Image(pixels).normalize(),
+        edges_checksums,
+        flipped_edges_checksums,
+    }
+}
+
+fn edges_checksums(pixels: &HashMap<Pos, Pixel>) -> [EdgeChecksum; 4] {
+    let upper_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.y == 0)
+        .map(|(position, &pixel)| (2_usize.pow(position.x as u32) * (pixel as EdgeChecksum)))
+        .sum::<EdgeChecksum>();
+
+    let right_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.x == (TILE_SIZE - 1))
+        .map(|(position, &pixel)| (2_usize.pow(position.y as u32) * (pixel as EdgeChecksum)))
+        .sum::<EdgeChecksum>();
+
+    let lower_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.y == (TILE_SIZE - 1))
+        .map(|(position, &pixel)| {
+            2_usize.pow(((TILE_SIZE - 1) - position.x) as u32) * (pixel as EdgeChecksum)
+        })
+        .sum::<EdgeChecksum>();
+
+    let left_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.x == 0)
+        .map(|(position, &pixel)| {
+            2_usize.pow(((TILE_SIZE - 1) - position.y) as u32) * (pixel as EdgeChecksum)
+        })
+        .sum::<EdgeChecksum>();
+
+    [
+        upper_checksum,
+        right_checksum,
+        lower_checksum,
+        left_checksum,
+    ]
+}
+
+fn flipped_edges_checksums(pixels: &HashMap<Pos, Pixel>) -> [EdgeChecksum; 4] {
+    let upper_flipped_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.y == 0)
+        .map(|(position, &pixel)| {
+            2_usize.pow(((TILE_SIZE - 1) - position.x) as u32) * (pixel as EdgeChecksum)
+        })
+        .sum::<EdgeChecksum>();
+
+    let right_flipped_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.x == (TILE_SIZE - 1))
+        .map(|(position, &pixel)| {
+            2_usize.pow(((TILE_SIZE - 1) - position.y) as u32) * (pixel as EdgeChecksum)
+        })
+        .sum::<EdgeChecksum>();
+
+    let lower_flipped_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.y == (TILE_SIZE - 1))
+        .map(|(position, &pixel)| (2_usize.pow(position.x as u32) * (pixel as EdgeChecksum)))
+        .sum::<EdgeChecksum>();
+
+    let left_flipped_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.x == 0)
+        .map(|(position, &pixel)| (2_usize.pow(position.y as u32) * (pixel as EdgeChecksum)))
+        .sum::<EdgeChecksum>();
+
+    [
+        upper_flipped_checksum,
+        right_flipped_checksum,
+        lower_flipped_checksum,
+        left_flipped_checksum,
+    ]
+}
+
+fn parse_tiles(input: &str) -> HashMap<TileId, Tile> {
+    input
+        .split("\n\n")
+        .map(|tile_str| {
+            let tile = parse_tile(tile_str);
+            (tile.id, tile)
+        })
+        .collect()
+}
+
+fn parse_edges<'a>(tiles: impl Iterator<Item = &'a Tile>) -> HashMap<EdgeChecksum, Vec<TileId>> {
+    let mut edges: HashMap<EdgeChecksum, Vec<TileId>> = HashMap::new();
+
+    for tile in tiles {
+        for edge in tile.edges_checksums.iter() {
+            let edge_tiles = edges.entry(*edge).or_insert_with(Vec::new);
+            edge_tiles.push(tile.id);
+        }
+
+        for edge in tile.flipped_edges_checksums.iter() {
+            let edge_tiles = edges.entry(*edge).or_insert_with(Vec::new);
+            edge_tiles.push(tile.id);
+        }
+    }
+
+    edges
+}
+
+fn parse(input: &str) -> (HashMap<TileId, Tile>, HashMap<EdgeChecksum, Vec<TileId>>) {
+    let tiles = parse_tiles(input);
+    let edges = parse_edges(tiles.values());
+
+    (tiles, edges)
+}
+
+fn part1((_tiles, edges): &(HashMap<TileId, Tile>, HashMap<EdgeChecksum, Vec<TileId>>)) -> u64 {
+    let edge_tiles: Vec<_> = edges
+        .iter()
+        .filter(|(_, tile_ids)| tile_ids.len() == 1)
+        .map(|(_, tile_ids)| tile_ids.iter().next().unwrap())
+        .collect();
+
+    let corner_tiles: HashSet<_> = edge_tiles
+        .iter()
+        .cloned()
+        .filter(|&edge_tile| {
+            edge_tiles
+                .iter()
+                .cloned()
+                .filter(|&tile| tile == edge_tile)
+                .count()
+                == 4 // two times (regular and flipped) per each edge
+        })
+        .cloned()
+        .collect();
+
+    corner_tiles.iter().product::<u64>()
+}
+
+fn place_image_pieces(
+    (tiles, edges): &(HashMap<TileId, Tile>, HashMap<EdgeChecksum, Vec<TileId>>),
+) -> HashMap<Pos, Image> {
+    use EdgeIndex::*;
+
+    let first_tile = tiles.values().next().unwrap();
+    let starting_position = (0, 0).into();
+
+    let mut image_pieces: HashMap<Pos, Image> =
+        [(starting_position, first_tile.image.clone())]
+            .iter()
+            .cloned()
+            .collect();
+
+    let mut queue: VecDeque<(Pos, Tile)> =
+        VecDeque::from(vec![(starting_position, first_tile.clone())]);
+    let mut visited: HashSet<Pos> = [starting_position].iter().cloned().collect();
+
+    while !queue.is_empty() {
+        let (current_position, current_tile) = queue.pop_front().unwrap();
+
+        for edge_index in &[Upper, Right, Lower, Left] {
+            let position = current_position + edge_index.into();
+
+            if !visited.contains(&position) {
+                let edge_checksum = current_tile.edges_checksums[(*edge_index) as usize];
+
+                for id in edges.get(&edge_checksum).unwrap() {
+                    if *id != current_tile.id {
+                        visited.insert(position);
+
+                        let mut neighbor_tile = tiles.get(id).unwrap().clone();
+
+                        for index in &[Upper, Right, Lower, Left] {
+                            if neighbor_tile.flipped_edges_checksums[*index as usize]
+                                == edge_checksum
+                            {
+                                neighbor_tile = neighbor_tile.transform(index, &!edge_index, false);
+                                break;
+                            } else if neighbor_tile.edges_checksums[*index as usize]
+                                == edge_checksum
+                            {
+                                neighbor_tile = neighbor_tile.transform(index, &!edge_index, true);
+                                break;
+                            }
+                        }
+
+                        queue.push_back((position, neighbor_tile.clone()));
+                        image_pieces.insert(position, neighbor_tile.image.clone());
                     }
                 }
             }
         }
     }
+
+    image_pieces
 }
 
-fn parse<const INPUT: &'static str>() -> Vec<UnsafeCell<Tile>> {
-    let tiles: Vec<UnsafeCell<Tile>> = INPUT
-        .split("\n\n")
-        .map(|t| UnsafeCell::new(Tile::from_str(t)))
-        .collect();
-    for t in tiles.iter() {
-        unsafe {
-            std::mem::transmute::<_, &mut Tile>(t.get()).quick_matches(&tiles);
+fn assemble_image(image_pieces: HashMap<Pos, Image>) -> Image {
+    let mut image = Image(HashMap::new());
+
+    for (large_position, tile_image) in image_pieces.iter() {
+        for x in 0..CROPPED_TILE_SIZE {
+            for y in 0..CROPPED_TILE_SIZE {
+                let pixel = tile_image.0.get(&(x as i32, y as i32).into()).unwrap();
+
+                image.0.insert(
+                    (
+                        large_position.x * CROPPED_TILE_SIZE + (x - 1) as i32,
+                        large_position.y * CROPPED_TILE_SIZE + (y - 1) as i32,
+                    )
+                        .into(),
+                    *pixel,
+                );
+            }
         }
     }
-    tiles
+
+    image.normalize()
 }
 
-fn p1(tiles: &[UnsafeCell<Tile>]) -> u64 {
-    let mut val = 1;
-    let mut corner_nb = 0;
-    for t in tiles.iter().map(|t| unsafe { std::mem::transmute::<_, &Tile>(t.get())}) {
-        if t.matches.len() == 3 {
-            val *= t.id as u64;
-            corner_nb += 1;
+fn monster_pixels_positions() -> Vec<Pos> {
+    const MONSTER_PATTERN: &str = r"                  #
+#    ##    ##    ###
+ #  #  #  #  #  #   ";
+
+    MONSTER_PATTERN
+        .lines()
+        .enumerate()
+        .map(move |(y, line)| {
+            line.chars()
+                .enumerate()
+                .filter(move |(_, c)| *c == '#')
+                .map(move |(x, _)| (x as i32, y as i32).into())
+        })
+        .flatten()
+        .collect()
+}
+
+fn count_monsters(image: &mut Image, monster_pixels: &[Pos]) -> usize {
+    let max_x = image.0.keys().map(|position| position.x).max().unwrap();
+    let max_y = image.0.keys().map(|position| position.y).max().unwrap();
+
+    let monster_max_x = monster_pixels
+        .iter()
+        .map(|position| position.x)
+        .max()
+        .unwrap();
+    let monster_max_y = monster_pixels
+        .iter()
+        .map(|position| position.y)
+        .max()
+        .unwrap();
+
+    let mut monsters_count = 0;
+
+    for attempt in 0..8 {
+        for y in 0..=max_y - monster_max_y + 1 {
+            'next_pixel: for x in 0..=max_x - monster_max_x + 1 {
+                let current_position: Pos = (x, y).into();
+
+                for monster_position in monster_pixels.iter() {
+                    if !*image
+                        .0
+                        .get(&(current_position + *monster_position))
+                        .unwrap()
+                    {
+                        continue 'next_pixel;
+                    }
+                }
+
+                monsters_count += 1;
+            }
+        }
+
+        if monsters_count > 0 {
+            break;
+        } else if attempt == 3 {
+            *image = image.flip();
+        } else {
+            *image = image.rotate_once();
         }
     }
-    assert!(corner_nb == 4);
-    val
+
+    monsters_count
+}
+
+fn part2(tiles_and_edges: &(HashMap<TileId, Tile>, HashMap<EdgeChecksum, Vec<TileId>>)) -> usize {
+    let pieces = place_image_pieces(tiles_and_edges);
+
+    let mut image = assemble_image(pieces);
+
+    let monster_pixels = monster_pixels_positions();
+    let monsters_count = count_monsters(&mut image, &monster_pixels);
+
+    image.0.values().filter(|&value| *value).count() - monsters_count * monster_pixels.len()
 }
 
 pub fn day20() -> (String, String) {
-    let tiles = parse::<INPUT>();
-
-    // for t in tiles.iter().map(|t| unsafe { std::mem::transmute::<_, &Tile>(t.get())}) {
-    //     println!("{:?}", t.matches);
-    // }
-
-    let p1 = p1(&tiles);
-    let p2 = "undefined";
-    // let p1 = p1(&rules, &data);
-    // let p2 = p2(&mut rules, &data);
-
+    let parsed  = parse(INPUT);
+    let p1 = part1(&parsed);
+    let p2 = part2(&parsed);
     (p1.to_string(), p2.to_string())
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
     const TEST_INPUT: &str = concat!(
-        "Tile 2311:\n..##.#..#.\n##..#.....\n#...##..#.\n####.#...#\n##.##.###.\n##...#.###\n.#.#.#..##\n..#....#..\n###...#.#.\n..###..###",
-        "\n\n",
-        "Tile 1951:\n#.##...##.\n#.####...#\n.....#..##\n#...######\n.##.#....#\n.###.#####\n###.##.##.\n.###....#.\n..#.#..#.#\n#...##.#..",
-        "\n\n",
-        "Tile 1171:\n####...##.\n#..##.#..#\n##.#..#.#.\n.###.####.\n..###.####\n.##....##.\n.#...####.\n#.##.####.\n####..#...\n.....##...",
-        "\n\n",
-        "Tile 1427:\n###.##.#..\n.#..#.##..\n.#.##.#..#\n#.#.#.##.#\n....#...##\n...##..##.\n...#.#####\n.#.####.#.\n..#..###.#\n..##.#..#.",
-        "\n\n",
-        "Tile 1489:\n##.#.#....\n..##...#..\n.##..##...\n..#...#...\n#####...#.\n#..#.#.#.#\n...#.#.#..\n##.#...##.\n..##.##.##\n###.##.#..",
-        "\n\n",
-        "Tile 2473:\n#....####.\n#..#.##...\n#.##..#...\n######.#.#\n.#...#.#.#\n.#########\n.###.#..#.\n########.#\n##...##.#.\n..###.#.#.",
-        "\n\n",
-        "Tile 2971:\n..#.#....#\n#...###...\n#.#.###...\n##.##..#..\n.#####..##\n.#..####.#\n#..#.#..#.\n..####.###\n..#.#.###.\n...#.#.#.#",
-        "\n\n",
-        "Tile 2729:\n...#.#.#.#\n####.#....\n..#.#.....\n....#..#.#\n.##..##.#.\n.#.####...\n####.#.#..\n##.####...\n##..#.##..\n#.##...##.",
-        "\n\n",
+        "Tile 2311:\n..##.#..#.\n##..#.....\n#...##..#.\n####.#...#\n##.##.###.\n##...#.###\n.#.#.#..##\n..#....#..\n###...#.#.\n..###..###\n\n",
+        "Tile 1951:\n#.##...##.\n#.####...#\n.....#..##\n#...######\n.##.#....#\n.###.#####\n###.##.##.\n.###....#.\n..#.#..#.#\n#...##.#..\n\n",
+        "Tile 1171:\n####...##.\n#..##.#..#\n##.#..#.#.\n.###.####.\n..###.####\n.##....##.\n.#...####.\n#.##.####.\n####..#...\n.....##...\n\n",
+        "Tile 1427:\n###.##.#..\n.#..#.##..\n.#.##.#..#\n#.#.#.##.#\n....#...##\n...##..##.\n...#.#####\n.#.####.#.\n..#..###.#\n..##.#..#.\n\n",
+        "Tile 1489:\n##.#.#....\n..##...#..\n.##..##...\n..#...#...\n#####...#.\n#..#.#.#.#\n...#.#.#..\n##.#...##.\n..##.##.##\n###.##.#..\n\n",
+        "Tile 2473:\n#....####.\n#..#.##...\n#.##..#...\n######.#.#\n.#...#.#.#\n.#########\n.###.#..#.\n########.#\n##...##.#.\n..###.#.#.\n\n",
+        "Tile 2971:\n..#.#....#\n#...###...\n#.#.###...\n##.##..#..\n.#####..##\n.#..####.#\n#..#.#..#.\n..####.###\n..#.#.###.\n...#.#.#.#\n\n",
+        "Tile 2729:\n...#.#.#.#\n####.#....\n..#.#.....\n....#..#.#\n.##..##.#.\n.#.####...\n####.#.#..\n##.####...\n##..#.##..\n#.##...##.\n\n",
         "Tile 3079:\n#.#.#####.\n.#..######\n..#.......\n######....\n####.#..#.\n.#...#.##.\n#.#####.##\n..#.###...\n..#.......\n..#.###..."
     );
 
     #[test]
-    fn test_p1() {
-        let parsed = parse::<TEST_INPUT>();
-        assert!(p1(&parsed) == 20899048083289);
+    fn part1_example() {
+        assert_eq!(part1(&parse(TEST_INPUT)), 20_899_048_083_289);
+    }
+
+    #[test]
+    fn part2_example() {
+        assert_eq!(part2(&parse(TEST_INPUT)), 273);
     }
 }

@@ -1,10 +1,5 @@
-#![feature(const_str_from_utf8_unchecked)]
 #![feature(box_syntax)]
-#![feature(const_mut_refs)]
-#![feature(destructuring_assignment)]
-#![feature(panic_info_message)]
-#![feature(generators, generator_trait)]
-#![feature(const_generics)]
+#![feature(min_const_generics)]
 #![feature(or_patterns)]
 #![feature(const_fn_transmute)]
 

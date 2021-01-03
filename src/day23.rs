@@ -1,134 +1,140 @@
-use std::ops::Range;
-
 const INPUT: &str = include_str!("../input/day23.txt");
 
-fn parse(input: &'static str) -> Vec<u8> {
-    input.as_bytes().iter().filter(|c| (b'0'..=b'9').contains(*c)).map(|c| c - b'0').collect()
+/// Ring buffer is represented as array with each idx = cup label,
+/// and value under that index/label is the index/label of the next cup.
+/// `[3, 8, 9, 1, 2, 5, 4, 6, 7]` becomes
+/// `[0 => (3), 1 => 2, 2 => 5, 3 => 8, 4 => 6, 5 => 4,
+///  6 => 7, 7 => 3, 8 => 9, 9 => 1]`.
+///
+/// `self.ring[0]` is the currently selected cup
+struct Cups {
+    ring: Vec<u32>,
 }
 
+impl Cups {
+    pub fn new(input: &str, nb_cups: Option<usize>) -> Self {
+        let cups = input
+            .trim_end()
+            .chars()
+            .map(|ch| (ch as u32) - b'0' as u32)
+            .collect::<Vec<_>>();
+        let nb_cups = match nb_cups {
+            Some(s) if s >= cups.len() => s,
+            _ => cups.len(),
+        };
+        let mut s = Self {
+            ring: vec![std::u32::MAX; nb_cups + 1],
+        };
+        //  Set head & body
+        s.ring[0] = cups[0];
+        cups.windows(2)
+            .for_each(|two_cups| s.ring[two_cups[0] as usize] = two_cups[1]);
+        //  Set tail
+        if nb_cups != cups.len() {
+            *s.ring.last_mut().unwrap() = s.ring[0];
 
-// The crab picks up the three cups that are immediately clockwise of the current cup.
-//      They are removed from the circle; cup spacing is adjusted as necessary to maintain the circle.
-
-// The crab selects a destination cup: the cup with a label equal to the current cup's label minus one.
-//      If this would select one of the cups that was just picked up,
-
-//      the crab will keep subtracting one until it finds a cup that wasn't just picked up.
-//      If at any point in this process the value goes below the lowest value on any cup's label,
-//      it wraps around to the highest value on any cup's label instead.
-// The crab places the cups it just picked up so that they are immediately clockwise of the destination cup.
-//      They keep the same order as when they were picked up.
-// The crab selects a new current cup: the cup which is immediately clockwise of the current cup.
-
-// fn pick_cups(cups: &mut Vec<u8>, pos: usize, nb: usize) -> Vec<u8> {
-//     let picked_cups = Vec::new();
-//     for i in 0..nb {
-//         picked_cups.push(cups.remove(pos % cups.len()));
-//     }
-//     picked_cups
-// }
-
-fn find_dest(cups: &[u8], org: &[usize], curr: u8) -> u8 {
-    let mut target = curr;
-    loop {
-        target = if target == 1 {cups.len() as u8} else {target - 1};
-        println!("Target: {}", target);
-        for (i, c) in cups.iter().enumerate() {
-            if *c == target && !org.contains(&i) {
-                return target;
+            let mut prev = *cups.last().unwrap() as usize;
+            let mut next = cups.len() + 1;
+            while prev < nb_cups {
+                s.ring[prev] = next as u32;
+                prev = next;
+                next += 1;
             }
-        }
-    }
-}
-
-// fn move_cups(cups: &mut Vec<u8>, org: usize, dst: usize) {
-//     let org_wrapped = [org % cups.len(), (org + 3) % cups.len()];
-//     let dst_wrapped = [dst % cups.len(), (dst + 3) % cups.len()];
-
-
-
-// }
-
-fn wrapped_range(start: usize, end: usize, max: usize) -> Vec<usize> {
-    let wrapped_end = end % max;
-    let wrapped_start = start % max;
-    if wrapped_end < wrapped_start {
-        (wrapped_start..max).chain(0..wrapped_end).collect()
-    } else {
-        (wrapped_start..wrapped_end).into_iter().collect()
-    }
-}
-
-
-fn crab_move(cups: &mut Vec<u8>, mut pos: usize) {
-    pos = pos % cups.len();
-    let curcup = cups[pos];
-    let org_ids = wrapped_range(pos+1, pos+4, cups.len());
-    let org: Vec<_> = org_ids.iter().map(|i| cups[*i]).collect();
-    let dest = find_dest(&cups, &org_ids, cups[pos]);
-
-    println!("pos: {}: {}", pos, cups[pos]);
-    println!("picked up: {:?}", org_ids.iter().map(|i| cups[*i]).collect::<Vec<_>>());
-    println!("dest: {}", dest);
-
-    let mut oi = 0;
-    let mut di = 0;
-    let mut new_cups = Vec::with_capacity(cups.len());
-    while oi < cups.len() {
-        if org_ids.contains(&oi) {
-            oi += 1;
-        } else if cups[oi] == dest {
-            new_cups.push(cups[oi]);
-            oi += 1;
-            new_cups.extend(org.iter());
         } else {
-            new_cups.push(cups[oi]);
-            oi += 1;
+            s.ring[*cups.last().unwrap() as usize] = cups[0] as u32;
+        }
+
+        s
+    }
+    pub fn run_rounds(&mut self, nb: usize) {
+        for _ in 0..nb {
+            let p0 = self.ring[0];
+            // pick up three cups
+            let p1 = self.ring[p0 as usize];
+            let p2 = self.ring[p1 as usize];
+            let p3 = self.ring[p2 as usize];
+
+            // pick destination
+            let mut dst = p0;
+            while [p0, p1, p2, p3].contains(&dst) {
+                dst -= 1;
+                if dst == 0 {
+                    dst = (self.ring.len() - 1) as u32;
+                }
+            }
+
+            // we need to go from
+            // [ current => pick1 => pick2 => pick3 => after_pick3 ... //
+            //   ... => dst => after_dst => ... ]
+            // to
+            // [ current => after_pick3 ... //
+            //   ... => dst => pick1 => pick2 => pick3 => after_dst => ... ]
+
+            // redirect current to after_pick3
+            self.ring[p0 as usize] = self.ring[p3 as usize];
+
+            // place picks between dst and after_dst
+            let after_dst = self.ring[dst as usize];
+            self.ring[dst as usize] = p1;
+            self.ring[p3 as usize] = after_dst;
+
+            // select new current cup
+            self.ring[0] = self.ring[p0 as usize];
         }
     }
-    let delta = pos as isize - new_cups.iter().position(|c| *c == curcup).unwrap() as isize;
-    if delta < 0 {
-        new_cups.rotate_left((-delta) as usize);
-    } else {
-        new_cups.rotate_right(delta as usize);
+    pub fn two_cups_clockwise_of_one(&self) -> usize {
+        self.ring[1] as usize * self.ring[self.ring[1] as usize] as usize
     }
-
-    *cups = new_cups;
+    pub fn labels_on_cups_after_cup_one(&self) -> String {
+        let mut output = String::new();
+        let mut id = self.ring[1];
+        while id != 1 {
+            output.push((id as u8 + b'0') as char);
+            id = self.ring[id as usize];
+        }
+        output
+    }
 }
 
-fn part1(mut cups: Vec<u8>, nb_rounds: usize) -> String {
-    for round in 0..nb_rounds {
-        println!("ROUND {} CUPS: {:?}", round, cups);
-        crab_move(&mut cups, round);
-    }
-    cups.iter_mut().for_each(|c| *c += b'0');
-    let idx_one = cups.iter().position(|c| *c == b'1').unwrap();
-    cups.rotate_left(idx_one);
-    cups.remove(0);
-    String::from_utf8(cups).unwrap()
+pub fn part1(input: &str, nb_rounds: usize) -> String {
+    let mut cups = Cups::new(input, None);
+    cups.run_rounds(nb_rounds);
+    cups.labels_on_cups_after_cup_one()
+}
+
+pub fn part2(input: &str) -> usize {
+    const TOTAL_CUPS: usize = 1_000_000;
+
+    let mut cups = Cups::new(input, Some(TOTAL_CUPS));
+    cups.run_rounds(10_000_000);
+    cups.two_cups_clockwise_of_one()
 }
 
 pub fn day23() -> (String, String) {
-    let mut t = parse(INPUT);
-
-    let p1 = part1(t, 100);
-    let p2 = "undefined";
-
+    let p1 = part1(INPUT.trim(), 100);
+    let p2 = part2(INPUT.trim());
     (p1.to_string(), p2.to_string())
 }
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const TEST_INPUT: &str = "389125467";
-
+    #[test]
+    fn test_part1_small() {
+        assert_eq!(part1("389125467", 10), "92658374");
+    }
     #[test]
     fn test_part1() {
-        let parsed = parse(TEST_INPUT);
-        let p1 = part1(parsed, 10);
-        println!("p1: {}", p1);
-        assert!(p1 == "92658374");
+        assert_eq!(part1("467528193", 100), "43769582");
+    }
+    #[test]
+    fn test_part2_small() {
+        assert_eq!(part2("389125467"), 149245887792);
+    }
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2("467528193"), 264692662390);
+
     }
 }

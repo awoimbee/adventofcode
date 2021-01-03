@@ -35,7 +35,7 @@ pub fn day25() -> (String, String) {
     let pubkeys = parse();
 
     let p1 = calculate_privkey(&pubkeys);
-    let p2 = "undefined";
+    let p2 = "🌟";
 
     (p1.to_string(), p2.to_string())
 }

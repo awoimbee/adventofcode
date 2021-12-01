@@ -1,10 +1,6 @@
 # Advent of Code 2020
 
-[![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
-
 [Advent of Code 2020](https://adventofcode.com/2020) in Rust.
-
-You will also find 2019's submissions in `./2019/`.
 
 ## How to use
 
@@ -13,6 +9,8 @@ You will also find 2019's submissions in `./2019/`.
 cargo run
 # run with optimizations
 cargo run --release
+# run tests
+cargo test
 ```
 
 ## Current results

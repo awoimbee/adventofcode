@@ -1,12 +1,11 @@
+use heapless::Vec;
 use itertools::Itertools;
 
 const INPUT: &str = include_str!("../input/day01.txt");
+const INPUT_LINES: usize = 2000;
 
-fn parse(input: &'static str) -> Vec<u32> {
-    input
-        .lines()
-        .map(|s| s.parse().expect("Not a valid number"))
-        .collect()
+fn parse(input: &'static str) -> Vec<u32, INPUT_LINES> {
+    input.split_terminator('\n').map(|s| s.parse().unwrap()).collect()
 }
 
 fn part_1(input: &[u32]) -> String {

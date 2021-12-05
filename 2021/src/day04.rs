@@ -4,9 +4,13 @@ const INPUT: &str = include_str!("../input/day04.txt");
 const MAX_DRAWED: usize = 100;
 const MAX_BOARDS: usize = 100;
 
+type Int = i32;
+type Board = [Int; 5 * 5];
+
 struct Parsed {
-    drawn: FastVec<i32, MAX_DRAWED>,
-    boards: FastVec<ndarray::Array2<i32>, MAX_BOARDS>,
+    drawn: FastVec<Int, MAX_DRAWED>,
+    boards: FastVec<Board, MAX_BOARDS>,
+    rows_columns: [[usize; 5]; 10],
 }
 
 impl Parsed {
@@ -18,71 +22,74 @@ impl Parsed {
             .split(',')
             .map(|nb| nb.parse().unwrap())
             .collect();
-        let boards = in_it
-            .map(|board_str| {
-                board_str
-                    .split('\n')
-                    .flat_map(|l| {
-                        l.split(' ')
-                            .filter(|&x| !x.is_empty())
-                            .map(|s| s.parse::<i32>().unwrap())
-                    })
-                    .collect::<ndarray::Array1<_>>()
-                    .into_shape((5, 5))
-                    .unwrap()
-            })
-            .collect();
-        Self { drawn, boards }
+        let mut boards = FastVec::<Board, MAX_BOARDS>::new();
+        for board_str in in_it {
+            boards.push([0; 25]).unwrap();
+            let b = boards.last_mut().unwrap();
+            let mut i = 0;
+            for l in board_str.split('\n') {
+                for nb in l
+                    .split(' ')
+                    .filter(|&s| !s.is_empty())
+                    .map(|s| s.parse().unwrap())
+                {
+                    b[i] = nb;
+                    i += 1;
+                }
+            }
+        }
+        let mut rows_columns = [[0; 5]; 10];
+        for i in 0..5 {
+            for j in 0..5 {
+                // Rows
+                rows_columns[i][j] = i * 5 + j;
+                // Columns
+                rows_columns[5 + i][j] = i + j * 5;
+            }
+        }
+
+        Self {
+            drawn,
+            boards,
+            rows_columns,
+        }
     }
 }
 
-fn board_score(board: &ndarray::Array2<i32>, draw: i32) -> i32 {
-    board.iter().filter(|nb| **nb != -1).sum::<i32>() * draw
+fn board_score(board: &Board, draw: Int) -> Int {
+    board.iter().filter(|nb| **nb != -1).sum::<Int>() * draw
 }
 
 fn solve(input: &mut Parsed) -> (String, String) {
-    let mut boards_won = Vec::<(usize, i32)>::with_capacity(MAX_BOARDS);
-    let mut boards_playing = (0..input.boards.len()).collect::<Vec<usize>>();
+    let mut first_board = None;
+    let mut last_board = None;
+    let mut boards_playing = (0..input.boards.len()).collect::<Vec<_>>();
 
     // assuming all boards won == all numbers drawn
-    for d in input.drawn.iter() {
-        // println!("Drawn");
-        for board_id in boards_playing.clone().iter() {
-            // println!("  Board");
-            let b = input.boards.get_mut(*board_id).unwrap();
-            for r in b.rows_mut().into_iter() {
-                let mut fail = false;
-                for a in r {
-                    match a {
-                        -1 => continue,
-                        _ if a == d => *a = -1,
-                        _ => {
-                            fail = true;
-                            continue;
-                        }
-                    }
-                }
-                if !fail {
-                    boards_won.push((*board_id, *d));
-                    boards_playing.retain(|&x| x != *board_id);
+    for &d in input.drawn.iter() {
+        'board: for &board_id in boards_playing.clone().iter() {
+            let b = input.boards.get_mut(board_id).unwrap();
+            for nb in b.iter_mut() {
+                if *nb == d {
+                    *nb = -1;
                 }
             }
-            // At this point we already iterated on every number
-            'column: for c in b.columns_mut().into_iter() {
-                for a in c {
-                    match a {
-                        -1 => continue,
-                        _ => continue 'column,
-                    }
+            'candidate: for candidate in input.rows_columns.iter() {
+                if !candidate.iter().all(|&nb_idx| b[nb_idx] == -1) {
+                    continue 'candidate;
                 }
-                boards_won.push((*board_id, *d));
-                boards_playing.retain(|&x| x != *board_id);
+                match first_board {
+                    None => first_board = Some((board_id, d)),
+                    _ => last_board = Some((board_id, d)),
+                }
+                boards_playing.retain(|&x| x != board_id);
+                continue 'board;
             }
         }
     }
 
-    let first = boards_won.first().unwrap();
-    let last = boards_won.last().unwrap();
+    let first = first_board.unwrap();
+    let last = last_board.unwrap();
 
     let part1 = (board_score(&input.boards[first.0], first.1)).to_string();
     let part2 = (board_score(&input.boards[last.0], last.1)).to_string();

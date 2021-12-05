@@ -1,16 +1,82 @@
-use heapless::Vec as FastVec;
+use heapless::Vec as StackVec;
 
 const INPUT: &str = include_str!("../input/day04.txt");
 const MAX_DRAWED: usize = 100;
 const MAX_BOARDS: usize = 100;
+/// Needs for loops in const functions
+/// ```rust
+/// let mut rows_columns = [[0; 5]; 10];
+/// for i in 0..5 {
+///    for j in 0..5 {
+///        // Rows
+///        rows_columns[i][j] = i * 5 + j;
+///        // Columns
+///        rows_columns[5 + i][j] = i + j * 5;
+///    }
+/// }
+/// ```
+const ROW_COLUMNS: [[usize; 5]; 10] = [
+    [0, 1, 2, 3, 4],
+    [5, 6, 7, 8, 9],
+    [10, 11, 12, 13, 14],
+    [15, 16, 17, 18, 19],
+    [20, 21, 22, 23, 24],
+    [0, 5, 10, 15, 20],
+    [1, 6, 11, 16, 21],
+    [2, 7, 12, 17, 22],
+    [3, 8, 13, 18, 23],
+    [4, 9, 14, 19, 24],
+];
 
 type Int = i32;
-type Board = [Int; 5 * 5];
+// type Board = [Int; 5 * 5];
+
+#[derive(Debug, Clone, Copy)]
+struct Board {
+    board: [Int; 5 * 5],
+    min_rounds: usize,
+}
+
+impl Board {
+    fn default() -> Self {
+        Self {
+            board: [0; 5 * 5],
+            min_rounds: 5,
+        }
+    }
+
+    fn set_nb(&mut self, drawed: Int) {
+        for nb in self.board.iter_mut() {
+            if *nb == drawed {
+                *nb = -1;
+                return;
+            }
+        }
+    }
+
+    fn has_won(&mut self) -> bool {
+        if self.min_rounds > 0 {
+            self.min_rounds -= 1;
+            return false;
+        }
+        for candidate in ROW_COLUMNS.iter() {
+            let count_bad_nb = candidate
+                .iter()
+                .filter(|&&nb_idx| self.board[nb_idx] != -1)
+                .count();
+            if count_bad_nb == 0 {
+                return true;
+            } else if self.min_rounds == 0 || count_bad_nb < self.min_rounds {
+                self.min_rounds = count_bad_nb;
+            }
+        }
+        false
+    }
+}
 
 struct Parsed {
-    drawn: FastVec<Int, MAX_DRAWED>,
-    boards: FastVec<Board, MAX_BOARDS>,
-    rows_columns: [[usize; 5]; 10],
+    drawn: StackVec<Int, MAX_DRAWED>,
+    boards: StackVec<Board, MAX_BOARDS>,
 }
 
 impl Parsed {
@@ -22,9 +88,9 @@ impl Parsed {
             .split(',')
             .map(|nb| nb.parse().unwrap())
             .collect();
-        let mut boards = FastVec::<Board, MAX_BOARDS>::new();
+        let mut boards = StackVec::<Board, MAX_BOARDS>::new();
         for board_str in in_it {
-            boards.push([0; 25]).unwrap();
+            boards.push(Board::default()).unwrap();
             let b = boards.last_mut().unwrap();
             let mut i = 0;
             for l in board_str.split('\n') {
@@ -33,58 +99,40 @@ impl Parsed {
                     .filter(|&s| !s.is_empty())
                     .map(|s| s.parse().unwrap())
                 {
-                    b[i] = nb;
+                    b.board[i] = nb;
                     i += 1;
                 }
             }
         }
-        let mut rows_columns = [[0; 5]; 10];
-        for i in 0..5 {
-            for j in 0..5 {
-                // Rows
-                rows_columns[i][j] = i * 5 + j;
-                // Columns
-                rows_columns[5 + i][j] = i + j * 5;
-            }
-        }
-
-        Self {
-            drawn,
-            boards,
-            rows_columns,
-        }
+        Self { drawn, boards }
     }
 }
 
 fn board_score(board: &Board, draw: Int) -> Int {
-    board.iter().filter(|nb| **nb != -1).sum::<Int>() * draw
+    board.board.iter().filter(|nb| **nb != -1).sum::<Int>() * draw
 }
 
 fn solve(input: &mut Parsed) -> (String, String) {
     let mut first_board = None;
     let mut last_board = None;
-    let mut boards_playing = (0..input.boards.len()).collect::<Vec<_>>();
+    let mut boards_playing = (0..input.boards.len()).collect::<StackVec<_, MAX_BOARDS>>();
 
     // assuming all boards won == all numbers drawn
     for &d in input.drawn.iter() {
-        'board: for &board_id in boards_playing.clone().iter() {
+        let mut boards_won = Vec::with_capacity(boards_playing.len());
+        for &board_id in boards_playing.iter() {
             let b = input.boards.get_mut(board_id).unwrap();
-            for nb in b.iter_mut() {
-                if *nb == d {
-                    *nb = -1;
-                }
+            b.set_nb(d);
+            if b.has_won() {
+                boards_won.push((board_id, d));
             }
-            'candidate: for candidate in input.rows_columns.iter() {
-                if !candidate.iter().all(|&nb_idx| b[nb_idx] == -1) {
-                    continue 'candidate;
-                }
-                match first_board {
-                    None => first_board = Some((board_id, d)),
-                    _ => last_board = Some((board_id, d)),
-                }
-                boards_playing.retain(|&x| x != board_id);
-                continue 'board;
+        }
+        for (board_id, draw) in boards_won {
+            match first_board {
+                None => first_board = Some((board_id, draw)),
+                _ => last_board = Some((board_id, draw)),
             }
+            boards_playing.swap_remove(boards_playing.iter().position(|x| *x == board_id).unwrap());
         }
     }
 

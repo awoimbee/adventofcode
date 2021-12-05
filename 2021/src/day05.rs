@@ -1,14 +1,12 @@
-use heapless::Vec as StackVec;
-use std::cmp::Ordering;
+use std::iter;
 
 const INPUT: &str = include_str!("../input/day05.txt");
-const MAX_SEGMENTS: usize = 500;
-const BOARD_SIZE: usize = 990;
+const MAX_BOARD_SIZE: usize = 990;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Point {
-    x: usize,
-    y: usize,
+    x: isize,
+    y: isize,
 }
 
 #[derive(Debug)]
@@ -17,21 +15,21 @@ struct Segment {
     b: Point,
 }
 
-/// ~1MB
-struct Board([u8; BOARD_SIZE * BOARD_SIZE]);
+struct Board(Vec<u8>);
 
 struct Parsed {
-    segments: StackVec<Segment, MAX_SEGMENTS>,
     board: Board,
+    segments_straight: Vec<Segment>,
+    segments_diagonal: Vec<Segment>,
 }
 
 impl Board {
     fn default() -> Self {
-        Board([0; BOARD_SIZE * BOARD_SIZE])
+        Board(vec![0; MAX_BOARD_SIZE * MAX_BOARD_SIZE])
     }
 
     fn get_mut(&mut self, x: usize, y: usize) -> &mut u8 {
-        &mut self.0[y * BOARD_SIZE + x]
+        &mut self.0[y * MAX_BOARD_SIZE + x]
     }
 
     fn count_overlaps(&self) -> usize {
@@ -40,8 +38,8 @@ impl Board {
 
     fn _print(&mut self) {
         println!("BOARD:");
-        for y in 0..BOARD_SIZE {
-            for x in 0..BOARD_SIZE {
+        for y in 0..MAX_BOARD_SIZE {
+            for x in 0..MAX_BOARD_SIZE {
                 print!("{}", self.get_mut(x, y));
             }
             println!();
@@ -50,24 +48,21 @@ impl Board {
 }
 
 impl Point {
-    const fn new(x: usize, y: usize) -> Self {
+    const fn new(x: isize, y: isize) -> Self {
         Self { x, y }
     }
 
     fn parse(def: &str) -> Self {
         let mut split = def.split(',');
-        let x = split.next().unwrap().trim().parse::<usize>().unwrap();
-        let y = split.next().unwrap().trim().parse::<usize>().unwrap();
+        let x = split.next().unwrap().parse().unwrap();
+        let y = split.next().unwrap().parse().unwrap();
         Self::new(x, y)
     }
 }
 
-fn ez_range(a: usize, b: usize) -> Box<dyn Iterator<Item = usize>> {
-    match a.cmp(&b) {
-        Ordering::Equal => box std::iter::repeat(a),
-        Ordering::Less => box (a..=b),
-        Ordering::Greater => box (b..=a).rev(),
-    }
+fn ez_range(a: isize, b: isize) -> impl Iterator<Item = isize> + Clone {
+    let direction = (b - a).signum();
+    iter::successors(Some(a), move |nb| Some(nb + direction))
 }
 
 impl Segment {
@@ -87,39 +82,46 @@ impl Segment {
     }
 
     fn iter(&self) -> impl Iterator<Item = Point> {
-        let x_range = ez_range(self.a.x, self.b.x);
-        let y_range = ez_range(self.a.y, self.b.y);
-        let range = x_range.zip(y_range);
-        range.map(|(x, y)| Point::new(x, y))
+        let range_x = ez_range(self.a.x, self.b.x).cycle();
+        let range_y = ez_range(self.a.y, self.b.y).cycle();
+        let length = (self.a.x - self.b.x).abs().max((self.a.y - self.b.y).abs()) as usize + 1;
+
+        range_x
+            .zip(range_y)
+            .take(length)
+            .map(|(x, y)| Point::new(x, y))
     }
 }
 
 impl Parsed {
     fn new(input: &str) -> Self {
-        let segments = input
+        let (segments_diagonal, segments_straight) = input
             .split_terminator('\n')
             .map(Segment::parse)
-            .collect::<StackVec<_, MAX_SEGMENTS>>();
+            .partition(|s| s.is_diagonal());
+
         let board = Board::default();
-        Self { segments, board }
+        Self {
+            segments_diagonal,
+            segments_straight,
+            board,
+        }
     }
 }
 
-/// No diagonals
 fn part1(input: &mut Parsed) -> String {
-    for segment in input.segments.iter().filter(|s| !s.is_diagonal()) {
+    for segment in input.segments_straight.iter() {
         for point in segment.iter() {
-            *input.board.get_mut(point.x, point.y) += 1;
+            *input.board.get_mut(point.x as usize, point.y as usize) += 1;
         }
     }
     input.board.count_overlaps().to_string()
 }
 
-/// Build uppon part1 but add diagonals
 fn part2(input: &mut Parsed) -> String {
-    for segment in input.segments.iter().filter(|s| s.is_diagonal()) {
+    for segment in input.segments_diagonal.iter() {
         for point in segment.iter() {
-            *input.board.get_mut(point.x, point.y) += 1;
+            *input.board.get_mut(point.x as usize, point.y as usize) += 1;
         }
     }
     input.board.count_overlaps().to_string()

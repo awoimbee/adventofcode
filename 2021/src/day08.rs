@@ -136,13 +136,11 @@ gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce
 
     #[test]
     fn test_part_1_test_input() {
-        println!("{}", TEST_INPUT);
         assert_eq!(part_1(TEST_INPUT), 26);
     }
 
     #[test]
     fn test_part_2_test_input() {
-        println!("{}", TEST_INPUT);
         assert_eq!(part_2(TEST_INPUT), 61229);
     }
 

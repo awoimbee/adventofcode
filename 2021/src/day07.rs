@@ -27,14 +27,18 @@ impl Crabs {
         self.fuel_p1(self.min_distance_p1())
     }
 
-    /// with `x=|crab_sub[i] - position|`; Crab fuel is: `((x+1)*x)/2 <=> (x^2 + x)/2`
+    /// With the target position `p`.
+    /// With `I=crab_subs.len()` and `i=(..I)`.
+    /// With `Δ=|crab_sub[i] - p|`.
+    /// We are working on `Z`.
     ///
-    /// mean minimizes `sum(x^2)` (https://math.stackexchange.com/questions/967138/formal-proof-that-mean-minimize-squared-error-function).
+    /// Crab fuel is: `∑((Δ+1)*Δ)/2` <=> `∑(Δ^2 + Δ)/2`.
     ///
-    /// we minimize `sum((x^2 + x) / 2)`.
+    /// Mean minimizes `∑(Δ^2)`.
+    /// We **minimize** `∑((Δ^2 + Δ) / 2)` => `∑(Δ^2 + Δ)`.
+    /// `+ Δ` in `∑(Δ^2 + Δ)` is negligible, for big enough `Δ` and `x`: `|Δ^2 - (Δ+x)^2| >~ Δ`.
     ///
     /// *close enough !*
-    ///
     /// The minimum distance is either the `floor()` or the `ceil()` of the mean.
     fn min_distance_p2(&self) -> (i32, i32) {
         let mean = self.crabs.iter().map(|&c| c as f32).sum::<f32>() / self.crabs.len() as f32;

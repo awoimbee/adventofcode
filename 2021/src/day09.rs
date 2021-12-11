@@ -1,24 +1,25 @@
+use heapless::Vec as StackVec;
+
 const INPUT: &str = include_str!("../input/day09.txt");
 
 struct Map {
     data: Vec<u8>,
-    offsets: [isize; 4],
     width: usize,
+    height: usize,
 }
 
 impl Map {
     fn new(input: &str) -> Self {
         let width = input.find('\n').unwrap();
-        let data = input
+        let data: Vec<_> = input
             .split_terminator('\n')
             .flat_map(|line| line.as_bytes().iter().map(|b| b - b'0'))
             .collect();
-        let w = width as isize;
-        let offsets = [-1, 1, -w, w];
+        let height = data.len() / width;
         Self {
             data,
             width,
-            offsets,
+            height,
         }
     }
 
@@ -40,17 +41,30 @@ impl Map {
         }
     }
 
+    fn pos_1d(&self, x: usize, y: usize) -> usize {
+        x + y * self.width
+    }
+
+    fn pos_2d(&self, i: usize) -> (usize, usize) {
+        (i % self.width, i / self.width)
+    }
+
     #[inline]
     fn iter_neighbors(&'_ self, idx: usize) -> impl Iterator<Item = usize> + '_ {
-        self.offsets
+        const OFFSETS: [isize; 2] = [-1, 1];
+        let (x, y) = self.pos_2d(idx);
+        let it_x = OFFSETS
             .into_iter()
-            .filter(move |offset| {
-                let result = idx.overflowing_add_signed(*offset).0;
-                result < self.data.len()
-                    && ((idx % self.width) == (result % self.width)
-                        || (idx / self.width) == (result / self.width))
-            })
-            .map(move |offset| idx.overflowing_add_signed(offset).0)
+            .map(move |dx| x.overflowing_add_signed(dx).0)
+            .filter(|x| *x < self.width)
+            .map(move |x| self.pos_1d(x, y));
+        let it_y = OFFSETS
+            .into_iter()
+            .map(move |dy| y.overflowing_add_signed(dy).0)
+            .filter(|y| *y < self.height)
+            .map(move |y| self.pos_1d(x, y));
+
+        it_x.chain(it_y)
     }
 
     fn local_low_points(&self) -> impl Iterator<Item = (usize, &u8)> {
@@ -63,7 +77,11 @@ impl Map {
     fn recurse_bassin(&mut self, pos: usize) -> u64 {
         let mut sum = 1;
         self.data[pos as usize] = 10;
-        for neighbor in self.iter_neighbors(pos).collect::<Vec<_>>().into_iter() {
+        for neighbor in self
+            .iter_neighbors(pos)
+            .collect::<StackVec<usize, 4>>()
+            .into_iter()
+        {
             match self.data.get(neighbor) {
                 Some(9) | Some(10) | None => continue,
                 Some(_) => sum += self.recurse_bassin(neighbor),

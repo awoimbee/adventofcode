@@ -85,7 +85,7 @@ struct TraversalData {
 impl TraversalData {
     fn new(map: Map) -> Self {
         Self {
-            visited: Vec::with_capacity(map.caves.len().pow(5)),
+            visited: Vec::with_capacity(map.caves.len() * 2),
             visited_twice: None,
             map,
         }
@@ -103,7 +103,7 @@ impl TraversalData {
             return 1;
         }
         let cave = &self.map.caves[id];
-        if !cave.is_big && self.visited.contains(&id) {
+        if likely(!cave.is_big && self.visited.contains(&id)) {
             if likely(self.visited_twice.is_some()) || unlikely(id == self.map.start) {
                 return 0;
             }

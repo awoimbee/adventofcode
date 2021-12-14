@@ -14,7 +14,7 @@ mod day09;
 mod day10;
 mod day11;
 mod day12;
-// mod day13;
+mod day13;
 // mod day14;
 // mod day15;
 // mod day16;
@@ -32,7 +32,7 @@ use clap::{App, Arg};
 use colored::*;
 use std::time::SystemTime;
 
-const SOLUTIONS: [Day; 12] = [
+const SOLUTIONS: [Day; 13] = [
     day01::day01,
     day02::day02,
     day03::day03,
@@ -45,7 +45,7 @@ const SOLUTIONS: [Day; 12] = [
     day10::day10,
     day11::day11,
     day12::day12,
-    // day13::day13,
+    day13::day13,
     // day14::day14,
     // day15::day15,
     // day16::day16,

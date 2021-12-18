@@ -1,38 +1,18 @@
 use fnv::FnvHashMap;
 use priority_queue::priority_queue::PriorityQueue;
-use std::intrinsics::{likely, unlikely};
+use std::intrinsics::likely;
 
 const INPUT: &str = include_str!("../input/day15.txt");
 
-#[derive(Debug, Clone, Copy, Hash)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 struct State {
-    last_pos: u32,
     pos: u32,
     cost: u32,
 }
+
 impl State {
-    pub fn new(last_pos: u32, pos: u32, cost: u32) -> Self {
-        Self {
-            pos,
-            cost,
-            last_pos,
-        }
-    }
-}
-impl std::cmp::PartialEq for State {
-    fn eq(&self, other: &Self) -> bool {
-        self.cost == other.cost
-    }
-}
-impl std::cmp::Eq for State {}
-impl std::cmp::PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-impl std::cmp::Ord for State {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.cost.cmp(&other.cost)
+    pub fn new(pos: u32, cost: u32) -> Self {
+        Self { pos, cost }
     }
 }
 
@@ -87,37 +67,23 @@ impl Map {
         (y * self.width + x) as usize
     }
 
-    // returns estimated distance to end
-    fn manhattan_dist_heuristic(&self, pos1d: u32) -> u32 {
-        let pos2d = self.pos2d(pos1d);
-        let end = (self.width as u32 - 1, self.height as u32 - 1);
-
-        (end.0 - pos2d.0 + end.1 - pos2d.1)
-    }
-
-    pub fn a_star(&self) -> (State, FnvHashMap<u32, State>) {
+    pub fn djikstra(&self) -> State {
         let mut open = PriorityQueue::new();
-        let mut closed = FnvHashMap::<u32, State>::default();
+        let mut closed = FnvHashMap::<u32, u32>::default();
         let mut best_solution = None;
 
-        open.push(State::new(u32::MAX, 0, 0), cost2prio(0));
-        while let Some((state, prio)) = open.pop() {
-            let total_cost = cost2prio(prio);
-            if let Some(closed) = closed.get(&state.pos) {
-                if total_cost >= closed.cost {
+        open.push(State::new(0, 0), cost2prio(0));
+        while let Some((state, _)) = open.pop() {
+            // println!("{}", open.len());
+            if let Some(&closed_cost) = closed.get(&state.pos) {
+                if state.cost >= closed_cost {
                     continue;
                 }
             }
-            closed.insert(
-                state.pos,
-                State {
-                    last_pos: state.last_pos,
-                    cost: total_cost,
-                    pos: state.pos,
-                },
-            );
+            closed.insert(state.pos, state.cost);
+
             if state.pos == (self.data.len() - 1) as u32 {
-                println!("found solution");
+                println!("found solution: {}", state.cost);
                 best_solution = Some(state);
                 continue;
             }
@@ -127,29 +93,25 @@ impl Map {
             if likely(x + 1 < self.width) {
                 let pos = state.pos + 1;
                 let cost = state.cost + self.data[pos as usize] as u32;
-                let total_cost = cost + self.manhattan_dist_heuristic(pos);
-                open.push(State::new(state.pos, pos, cost), cost2prio(total_cost));
-            }
-            if likely(y + 1 < self.height) {
-                let pos = state.pos + self.width;
-                let cost = state.cost + self.data[pos as usize] as u32;
-                let total_cost = cost + self.manhattan_dist_heuristic(pos);
-                open.push(State::new(state.pos, pos, cost), cost2prio(total_cost));
+                open.push(State::new(pos, cost), cost2prio(cost));
             }
             if likely(x > 0) {
                 let pos = state.pos - 1;
                 let cost = state.cost + self.data[pos as usize] as u32;
-                let total_cost = cost + self.manhattan_dist_heuristic(pos);
-                open.push(State::new(state.pos, pos, cost), cost2prio(total_cost));
+                open.push(State::new(pos, cost), cost2prio(cost));
+            }
+            if likely(y + 1 < self.height) {
+                let pos = state.pos + self.width;
+                let cost = state.cost + self.data[pos as usize] as u32;
+                open.push(State::new(pos, cost), cost2prio(cost));
             }
             if likely(y > 0) {
                 let pos = state.pos - self.width;
                 let cost = state.cost + self.data[pos as usize] as u32;
-                let total_cost = cost + self.manhattan_dist_heuristic(pos);
-                open.push(State::new(state.pos, pos, cost), cost2prio(total_cost));
+                open.push(State::new(pos, cost), cost2prio(cost));
             }
         }
-        (best_solution.unwrap(), closed)
+        best_solution.unwrap()
     }
 
     fn _print(&self) {
@@ -161,37 +123,17 @@ impl Map {
         }
         println!();
     }
-
-    fn find_way(&self) {
-        let (final_state, closed) = self.a_star();
-        let mut s = &final_state;
-        let mut way = Vec::with_capacity(s.cost as usize);
-        // way.push(self.pos2d(state.pos));
-        way.push(final_state.cost);
-        while let Some(state) = closed.get(&s.last_pos) {
-            // way.push(self.pos2d(state.pos));
-            way.push(state.cost);
-            s = state;
-            if s.pos == 0 {
-                break;
-            }
-        }
-
-        println!("{:?}", way);
-    }
 }
 
 pub fn day15() -> (String, String) {
     let mut parsed = Map::from_str(INPUT);
-    let (part1, _) = parsed.a_star();
+    let part1 = parsed.djikstra();
     parsed.extend_5_times();
-    let (part2, _) = parsed.a_star();
+    let part2 = parsed.djikstra();
     let part1 = part1.cost;
     let part2 = part2.cost;
 
     (part1.to_string(), part2.to_string())
-
-    // 4441317262452 too high
 }
 
 #[cfg(test)]
@@ -212,13 +154,13 @@ mod test {
     #[test]
     fn test_part_1_test_input() {
         let parsed = Map::from_str(TEST_INPUT);
-        let (final_state, _) = parsed.a_star();
+        let final_state = parsed.djikstra();
         assert_eq!(final_state.cost, 40);
     }
     #[test]
     fn test_part_1() {
         let parsed = Map::from_str(INPUT);
-        let (final_state, _) = parsed.a_star();
+        let final_state = parsed.djikstra();
         assert_eq!(final_state.cost, 373);
     }
 
@@ -227,14 +169,16 @@ mod test {
         let mut parsed = Map::from_str(TEST_INPUT);
         parsed.extend_5_times();
         parsed._print();
-        let (final_state, _) = parsed.a_star();
+        let final_state = parsed.djikstra();
         assert_eq!(final_state.cost, 315);
     }
+
     #[test]
+    #[cfg_attr(not(feature = "expensive_tests"), ignore)]
     fn test_part_2() {
         let mut parsed = Map::from_str(INPUT);
         parsed.extend_5_times();
-        let (final_state, _) = parsed.a_star();
-        assert_eq!(final_state.cost, 2870);
+        let final_state = parsed.djikstra();
+        assert_eq!(final_state.cost, 2868);
     }
 }

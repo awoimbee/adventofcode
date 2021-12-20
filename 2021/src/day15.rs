@@ -68,7 +68,9 @@ impl Map {
     }
 
     pub fn djikstra(&self) -> State {
+        // TODO: going up and left is inherently low-piority; this leaves us w/ 2 options per square, maybe a vec can replace PriotityQueue
         let mut open = PriorityQueue::new();
+        // TODO: replace by a cost_map (Vec<u32>)
         let mut closed = FnvHashMap::<u32, u32>::default();
         let mut best_solution = None;
 

@@ -199,8 +199,6 @@ pub fn day16() -> (String, String) {
     let part2 = parsed.value;
 
     (part1.to_string(), part2.to_string())
-
-    // 4441317262452 too high
 }
 
 #[cfg(test)]

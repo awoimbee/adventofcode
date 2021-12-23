@@ -1,5 +1,5 @@
-use fnv::FnvHashMap;
-use priority_queue::priority_queue::PriorityQueue;
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
 use std::intrinsics::likely;
 
 const INPUT: &str = include_str!("../input/day15.txt");
@@ -8,6 +8,18 @@ const INPUT: &str = include_str!("../input/day15.txt");
 struct State {
     pos: u32,
     cost: u32,
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &State) -> Option<Ordering> {
+        Some(other.cost.cmp(&self.cost))
+    }
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &State) -> Ordering {
+        other.cost.cmp(&self.cost)
+    }
 }
 
 impl State {
@@ -20,10 +32,6 @@ struct Map {
     width: u32,
     height: u32,
     data: Vec<u8>,
-}
-
-fn cost2prio(elem: u32) -> u32 {
-    u32::MAX - elem
 }
 
 impl Map {
@@ -68,49 +76,45 @@ impl Map {
     }
 
     pub fn djikstra(&self) -> State {
-        // TODO: going up and left is inherently low-piority; this leaves us w/ 2 options per square, maybe a vec can replace PriotityQueue
-        let mut open = PriorityQueue::new();
-        // TODO: replace by a cost_map (Vec<u32>)
-        let mut closed = FnvHashMap::<u32, u32>::default();
+        let mut open = BinaryHeap::new();
+        let mut cost_map = vec![u32::MAX; self.data.len()];
         let mut best_solution = None;
-
-        open.push(State::new(0, 0), cost2prio(0));
-        while let Some((state, _)) = open.pop() {
-            // println!("{}", open.len());
-            if let Some(&closed_cost) = closed.get(&state.pos) {
-                if state.cost >= closed_cost {
-                    continue;
-                }
+        open.push(State::new(0, 0));
+        while let Some(state) = open.pop() {
+            let closed_cost = cost_map[state.pos as usize];
+            if state.cost >= closed_cost {
+                continue;
             }
-            closed.insert(state.pos, state.cost);
-
+            cost_map[state.pos as usize] = state.cost;
             if state.pos == (self.data.len() - 1) as u32 {
-                println!("found solution: {}", state.cost);
                 best_solution = Some(state);
                 continue;
             }
             // expand
             let (x, y) = self.pos2d(state.pos);
-            // let cost = state.cost + self.data[state.pos as usize] as u32;
+            // right
             if likely(x + 1 < self.width) {
                 let pos = state.pos + 1;
                 let cost = state.cost + self.data[pos as usize] as u32;
-                open.push(State::new(pos, cost), cost2prio(cost));
+                open.push(State::new(pos, cost));
             }
-            if likely(x > 0) {
-                let pos = state.pos - 1;
-                let cost = state.cost + self.data[pos as usize] as u32;
-                open.push(State::new(pos, cost), cost2prio(cost));
-            }
+            // down
             if likely(y + 1 < self.height) {
                 let pos = state.pos + self.width;
                 let cost = state.cost + self.data[pos as usize] as u32;
-                open.push(State::new(pos, cost), cost2prio(cost));
+                open.push(State::new(pos, cost));
             }
+            // left (likely bad)
+            if likely(x > 0) {
+                let pos = state.pos - 1;
+                let cost = state.cost + self.data[pos as usize] as u32;
+                open.push(State::new(pos, cost));
+            }
+            // up (likely bad)
             if likely(y > 0) {
                 let pos = state.pos - self.width;
                 let cost = state.cost + self.data[pos as usize] as u32;
-                open.push(State::new(pos, cost), cost2prio(cost));
+                open.push(State::new(pos, cost));
             }
         }
         best_solution.unwrap()

@@ -122,8 +122,8 @@ mod test {
     #[test]
     fn test_part2() {
         let p = Parsed::from_input(INPUT);
-        let (p1, _) = solve(&p);
-        assert_eq!(p1, 3528);
+        let (_, p2) = solve(&p);
+        assert_eq!(p2, 3528);
     }
 
     #[test]

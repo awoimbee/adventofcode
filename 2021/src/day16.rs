@@ -130,6 +130,7 @@ fn packet_from_operator_iter(
             let length: isize = bytes_to_bits(iter.by_ref().take(15));
             // error[E0275]: overflow evaluating the requirement `Peekable<std::str::Bytes>: Iterator`
             // let mut it = iter.take(length as usize).peekable();
+            #[allow(clippy::needless_collect)]
             let col = iter.take(length as usize).collect::<Vec<_>>();
             let mut it = col.into_iter().peekable();
             parse_operator_ops(&mut it, None, type_id)

@@ -32,7 +32,7 @@ use clap::{App, Arg};
 use colored::*;
 use std::time::SystemTime;
 
-const SOLUTIONS: [Day; 23] = [
+const SOLUTIONS: [Day; 19] = [
     day01::day01,
     day02::day02,
     day03::day03,

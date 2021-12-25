@@ -1,159 +1,172 @@
-use std::cmp::Ordering;
-use std::collections::BinaryHeap;
-use std::intrinsics::likely;
+use std::collections::HashMap;
 
 const INPUT: &str = include_str!("../input/day23.txt");
 
 const WEIGHT: [i64; 4] = [1, 10, 100, 1000];
-const ROOM2HALLWAY: [usize; 4] = [2, 4, 6, 8];
-const EMPTY: u8 = u8::MAX;
+const BUF_WEIGHT: [i64; 7] = [0, 1, 3, 5, 7, 9, 10];
 
-#[inline]
-const fn amphipod2inidex(a: impl Into<usize>) -> usize {
-    a.into() - b'A' as usize
-}
-#[inline]
-const fn index2amphipod(a: impl Into<u8>) -> u8 {
-    a.into() + b'A'
+fn weight(c: u8) -> i64 {
+    WEIGHT[(c - b'A') as usize]
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-struct Map {
-    hallway: [u8; 11],
-    rooms: [[u8; 2]; 4],
+fn buf_traversal_cost(i: usize, j: usize, c: u8) -> i64 {
+    (BUF_WEIGHT[i] - BUF_WEIGHT[j]).abs() * WEIGHT[(c - b'A') as usize]
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct State {
-    map: Map,
-    cost: u32,
-}
-
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &State) -> Option<Ordering> {
-        Some(other.cost.cmp(&self.cost))
-    }
-}
-
-impl Ord for State {
-    fn cmp(&self, other: &State) -> Ordering {
-        other.cost.cmp(&self.cost)
-    }
+    rooms: [Vec<u8>; 4],
+    buffer: [u8; 7],
 }
 
 impl State {
-    pub fn new(pos: u32, cost: u32) -> Self {
-        Self { pos, cost }
+    fn from_input(input: &str) -> Self {
+        let input = input[14..].as_bytes();
+        let i = input;
+        let buffer = [i[1], i[2], i[4], i[6], i[8], i[10], i[11]];
+        let rooms = [
+            vec![i[18], i[32]],
+            vec![i[20], i[34]],
+            vec![i[22], i[36]],
+            vec![i[24], i[38]],
+        ];
+        Self { rooms, buffer }
+    }
+
+    fn final_state() -> Self {
+        State {
+            rooms: [
+                vec![b'A', b'A'],
+                vec![b'B', b'B'],
+                vec![b'C', b'C'],
+                vec![b'D', b'D'],
+            ],
+            buffer: [b'.'; 7],
+        }
+    }
+
+    fn is_valid_room(&self, i: usize) -> bool {
+        self.rooms[i].iter().all(|&c| i == (c - b'A') as usize)
+    }
+
+    fn entry_cost(&self, i: usize) -> i64 {
+        (4 - self.rooms[i].len()) as i64 * WEIGHT[i]
+    }
+
+    fn exit_cost(&self, i: usize, c: u8) -> i64 {
+        (4 - self.rooms[i].len()) as i64 * weight(c)
+    }
+
+    fn transition_room_to_buffer(&self) -> Vec<(State, i64)> {
+        let mut res = vec![];
+        for i in 0..4 {
+            if self.is_valid_room(i) {
+                continue;
+            }
+            let mut next = self.clone();
+            let c = next.rooms[i].pop().unwrap();
+            for j in (0..=i + 1).rev() {
+                let cost = buf_traversal_cost(j, i + 1, c) + weight(c) + next.exit_cost(i, c);
+                if next.buffer[j] == b'.' {
+                    next.buffer[j] = c;
+                    res.push((next.clone(), cost));
+                    next.buffer[j] = b'.';
+                } else {
+                    break;
+                }
+            }
+            for j in i + 2..7 {
+                let cost = buf_traversal_cost(i + 2, j, c) + weight(c) + next.exit_cost(i, c);
+                if next.buffer[j] == b'.' {
+                    next.buffer[j] = c;
+                    res.push((next.clone(), cost));
+                    next.buffer[j] = b'.';
+                } else {
+                    break;
+                }
+            }
+        }
+        res
+    }
+
+    fn transition_buffer_to_room(&self) -> Vec<(State, i64)> {
+        let mut res = vec![];
+        for i in 0..7 {
+            if self.buffer[i] == b'.' {
+                continue;
+            }
+            let r = (self.buffer[i] as u8 - b'A') as usize;
+            if !self.is_valid_room(r) {
+                continue;
+            }
+            if i <= r + 1 {
+                if (i + 1..=r + 1).all(|i| self.buffer[i] == b'.') {
+                    let mut next = self.clone();
+                    let c = buf_traversal_cost(i, r + 1, next.buffer[i])
+                        + weight(next.buffer[i])
+                        + self.entry_cost(r);
+                    next.rooms[r].push(next.buffer[i]);
+                    next.buffer[i] = b'.';
+                    res.push((next, c));
+                }
+            } else if (r + 2..i).all(|i| self.buffer[i] == b'.') {
+                let mut next = self.clone();
+                let c = buf_traversal_cost(r + 2, i, next.buffer[i])
+                    + weight(next.buffer[i])
+                    + self.entry_cost(r);
+                next.rooms[r].push(next.buffer[i]);
+                next.buffer[i] = b'.';
+                res.push((next, c));
+            }
+        }
+        res
+    }
+
+    fn transitions(&self) -> Vec<(State, i64)> {
+        let mut res = self.transition_room_to_buffer();
+        res.append(&mut self.transition_buffer_to_room());
+        res
+    }
+
+    fn _print(&self) {
+        println!("#############");
+        print!("#");
+        // TODO
+
+
     }
 }
 
-impl Map {
-    #[inline]
-    fn room_is_valid(&self, room: impl Into<usize>) -> bool {
-        let i = room.into();
-        let r = self.rooms[i];
-        if amphipod2inidex(r[0]) != i || amphipod2inidex(r[1]) != i {
-            return false;
+fn solve(input: State, expected: State) -> i64 {
+    let mut costs = HashMap::new();
+    let mut q = std::collections::BinaryHeap::new();
+    costs.insert(input.clone(), 0);
+    q.push((0, input));
+    while let Some((cost, grid)) = q.pop() {
+        let cost = -cost;
+        if cost != costs[&grid] {
+            continue;
         }
-        return true
-    }
-
-    pub fn is_done(&self) -> bool {
-    (0..self.rooms.len()).all(|i| self.room_is_valid(i))
-    }
-
-    fn expand(&self) -> Vec<Map> {
-        // let amphipods = self.hallway.iter().enumerate().filter(|(i,&a)| a != EMPTY)
-        // .map(|(i, a)| i)
-        // .chain(
-        //     self.rooms.iter().enumerate().flat_map(|(i,r)| r.iter().filter(|&&a| a != EMPTY)),
-        // );
-
-        let mut result = Vec::new();
-
-        for (i, r) in self.rooms.iter().enumerate() {
-            if self.room_is_valid(i) {
-                continue;
-            }
-
-            for j in 0..r.len() {
-                if r[j] == EMPTY {
+        if grid == expected {
+            break;
+        }
+        for (transition, t_cost) in grid.transitions() {
+            if let Some(&c) = costs.get(&transition) {
+                if c <= t_cost + cost {
                     continue;
                 }
-
-                let mut new_rooms = self.rooms.clone();
-                new_rooms[i] = [index2amphipod(ROOM2HALLWAY[j]), index2amphipod(ROOM2HALLWAY[j])];
-                let mut new_hallway = self.hallway.clone();
-                new_hallway[ROOM2HALLWAY[j]] = EMPTY;
-                result.push(Map {
-                    hallway: new_hallway,
-                    rooms: new_rooms,
-                });
             }
-
-
-
-            // let mut new_map = self.clone();
-            // new_map.rooms[i][0] = ROOM2AMPHIPOD[i];
-            // new_map.rooms[i][1] = ROOM2AMPHIPOD[i];
-            // result.push(new_map);
+            costs.insert(transition.clone(), t_cost + cost);
+            q.push((-(t_cost + cost), transition));
         }
-        result
     }
-
-    pub fn djikstra(&self) -> State {
-        // TODO: This is from day 15
-        let mut open = BinaryHeap::new();
-        let mut cost_map = vec![u32::MAX; self.data.len()];
-        let mut best_solution = None;
-        open.push(State::new(0, 0));
-        while let Some(state) = open.pop() {
-            let closed_cost = cost_map[state.pos as usize];
-            if state.cost >= closed_cost {
-                continue;
-            }
-            cost_map[state.pos as usize] = state.cost;
-            if state.pos == (self.data.len() - 1) as u32 {
-                best_solution = Some(state);
-                continue;
-            }
-            // expand
-            let (x, y) = self.pos2d(state.pos);
-            // right
-            if likely(x + 1 < self.width) {
-                let pos = state.pos + 1;
-                let cost = state.cost + self.data[pos as usize] as u32;
-                open.push(State::new(pos, cost));
-            }
-            // down
-            if likely(y + 1 < self.height) {
-                let pos = state.pos + self.width;
-                let cost = state.cost + self.data[pos as usize] as u32;
-                open.push(State::new(pos, cost));
-            }
-            // left (likely bad)
-            if likely(x > 0) {
-                let pos = state.pos - 1;
-                let cost = state.cost + self.data[pos as usize] as u32;
-                open.push(State::new(pos, cost));
-            }
-            // up (likely bad)
-            if likely(y > 0) {
-                let pos = state.pos - self.width;
-                let cost = state.cost + self.data[pos as usize] as u32;
-                open.push(State::new(pos, cost));
-            }
-        }
-        best_solution.unwrap()
-    }
+    *costs.get(&expected).unwrap()
 }
 
 pub fn day23() -> (String, String) {
-    let mut parsed = Map::from_str(INPUT);
-    let part1 = parsed.djikstra().cost;
-    let part2 = "";
+    let part1 = solve(State::from_input(INPUT), State::final_state());
 
-    (part1.to_string(), part2.to_string())
+    (part1.to_string(), "".to_string())
 }
 
 #[cfg(test)]
@@ -161,39 +174,17 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_map_done() {
-        const INPUT: &str = "
-#############
+    fn test_parsing() {
+        const INPUT: &str = "#############
 #...........#
-###A#B#C#D###
-  #A#B#C#D#
+###B#C#B#D###
+  #A#D#C#A#
   #########";
-        let parsed = Map::from_str(TEST_INPUT);
-        let final_state = parsed.djikstra();
-        assert_eq!(final_state.cost, 40);
-    }
-    #[test]
-    fn test_part_1() {
-        let parsed = Map::from_str(INPUT);
-        let final_state = parsed.djikstra();
-        assert_eq!(final_state.cost, 373);
-    }
-
-    #[test]
-    fn test_part_2_test_input() {
-        let mut parsed = Map::from_str(TEST_INPUT);
-        parsed.extend_5_times();
-        parsed._print();
-        let final_state = parsed.djikstra();
-        assert_eq!(final_state.cost, 315);
-    }
-
-    #[test]
-    #[cfg_attr(not(feature = "expensive_tests"), ignore)]
-    fn test_part_2() {
-        let mut parsed = Map::from_str(INPUT);
-        parsed.extend_5_times();
-        let final_state = parsed.djikstra();
-        assert_eq!(final_state.cost, 2868);
+        let s = State::from_input(INPUT);
+        assert_eq!(s.buffer, [b'.'; 7]);
+        assert_eq!(s.rooms[0], [b'B', b'A']);
+        assert_eq!(s.rooms[1], [b'C', b'D']);
+        assert_eq!(s.rooms[2], [b'B', b'C']);
+        assert_eq!(s.rooms[3], [b'D', b'A']);
     }
 }

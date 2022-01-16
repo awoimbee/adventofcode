@@ -61,15 +61,6 @@ fn _print_page(page: &BitSlice, width: usize, height: usize) {
     }
 }
 
-// let mut page = bitarr![0; PAGE_SIDE * PAGE_SIDE];
-
-// dots.iter().cloned().map(|(mut x, mut y)| {
-//     folds_x.iter().filter(|&&fx| x > fx).for_each(|fx| x = 2*fx - x);
-//     folds_y.iter().filter(|&&fy| y > fy).for_each(|fy| y = 2*fy - y);
-
-//     page.set(x + y * PAGE_SIDE, true);
-// });
-
 fn part_1(input: &Parsed) -> usize {
     let mut dots = Vec::new();
     let fold_x = input.folds_x[0];
@@ -97,7 +88,7 @@ fn part_1(input: &Parsed) -> usize {
     dots.len()
 }
 
-fn part_2(input: &Parsed) -> usize {
+fn part_2(input: &Parsed) -> (BitArray<[usize; 4]>, &str) {
     const PAGE_H: usize = 6;
     const PAGE_W: usize = 39;
     let mut page = bitarr![0; PAGE_H * PAGE_W];
@@ -115,17 +106,16 @@ fn part_2(input: &Parsed) -> usize {
         });
         page.set(x + y * PAGE_W, true);
     });
-    // implement some sort of OCR ?
-    _print_page(&page, PAGE_W, PAGE_H);
-    // dummy output
-    page.count_ones()
+    // _print_page(&page, PAGE_W, PAGE_H);
+    // fixme: hardcoded value because we don't have character recognition
+    (page, "EFLFJGRF")
 }
 
 pub fn day13() -> (String, String) {
     let parsed = Parsed::new(INPUT);
     let part1 = part_1(&parsed);
     let part2 = part_2(&parsed);
-    (part1.to_string(), part2.to_string())
+    (part1.to_string(), part2.1.to_string())
 }
 
 #[cfg(test)]

@@ -7,9 +7,11 @@ edition = "2021"
 
 [dependencies]
 colored = "2"
-clap = "2.33"
+clap = "^3.0"
 itertools = "0.10"
 heapless = "0.7.9"
 bitvec = "1.0.0-rc1"
 hash32 = "0.2.1"
 num = "0.4.0"
+nalgebra = "0.30.1"
+nom = "^7.1"

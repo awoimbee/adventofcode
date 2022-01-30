@@ -20,7 +20,7 @@ mod day15;
 mod day16;
 mod day17;
 mod day18;
-// mod day19;
+mod day19;
 // mod day20;
 // mod day21;
 mod day22;
@@ -32,7 +32,7 @@ use clap::{App, Arg};
 use colored::*;
 use std::time::SystemTime;
 
-const SOLUTIONS: [Day; 20] = [
+const SOLUTIONS: [Day; 21] = [
     day01::day01,
     day02::day02,
     day03::day03,
@@ -51,7 +51,7 @@ const SOLUTIONS: [Day; 20] = [
     day16::day16,
     day17::day17,
     day18::day18,
-    // day19::day19,
+    day19::day19,
     // day20::day20,
     // day21::day21,
     day22::day22,
@@ -86,17 +86,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .version("1.0")
         .author("Arthur Woimbée <arthur.woimbee@gmail.com>")
         .arg(
-            Arg::with_name("iterations")
-                .short("i")
+            Arg::new("iterations")
+                .short('i')
                 .long("iter")
                 .takes_value(true)
                 .help("Number of times to run each day"),
         )
         .arg(
-            Arg::with_name("days")
-                .short("d")
+            Arg::new("days")
+                .short('d')
                 .long("days")
-                .multiple(true)
+                .multiple_occurrences(true)
+                .multiple_values(true)
                 .takes_value(true)
                 .help("list of days to run"),
         )

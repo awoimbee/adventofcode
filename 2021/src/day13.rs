@@ -28,7 +28,7 @@ impl Parsed {
         let (folds_x, folds_y) = folds
             .split_terminator('\n')
             .partition_map::<Vec<_>, Vec<_>, _, _, _>(|line| {
-                let (_, fold_str) = line.rsplit_once(" ").expect("invalid fold");
+                let (_, fold_str) = line.rsplit_once(' ').expect("invalid fold");
                 let (axis, pos) = fold_str.split_once('=').expect("invalid fold");
                 let axis = axis.chars().next().expect("invalid fold");
                 let pos = pos.parse::<usize>().expect("invalid fold");

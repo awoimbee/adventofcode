@@ -21,18 +21,18 @@ mod day16;
 mod day17;
 mod day18;
 mod day19;
-// mod day20;
+mod day20;
 // mod day21;
 mod day22;
 mod day23;
 // mod day24;
 // mod day25;
 
-use clap::{App, Arg};
+use clap::{Arg, Command};
 use colored::*;
 use std::time::SystemTime;
 
-const SOLUTIONS: [Day; 21] = [
+const SOLUTIONS: [Day; 22] = [
     day01::day01,
     day02::day02,
     day03::day03,
@@ -52,7 +52,7 @@ const SOLUTIONS: [Day; 21] = [
     day17::day17,
     day18::day18,
     day19::day19,
-    // day20::day20,
+    day20::day20,
     // day21::day21,
     day22::day22,
     day23::day23,
@@ -82,7 +82,7 @@ fn fmt_time(t: f64) -> String {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = App::new("advent of code 2021")
+    let matches = Command::new("advent of code 2021")
         .version("1.0")
         .author("Arthur Woimbée <arthur.woimbee@gmail.com>")
         .arg(

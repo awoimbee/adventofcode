@@ -113,7 +113,7 @@ fn align_scanner(s1: &mut ScannerInfo, s2: &ScannerInfo) -> bool {
         .into_iter()
         .map(|v| s2.orientation.unwrap() * v)
         .collect();
-    s2_beacons.sort_by(|v1, v2| compare_vector(v1, v2));
+    s2_beacons.sort_by(compare_vector);
 
     let mut s1_beacons: Vec<Vector3<i32>> = s1
         .scanner
@@ -122,7 +122,7 @@ fn align_scanner(s1: &mut ScannerInfo, s2: &ScannerInfo) -> bool {
         .into_iter()
         .map(|v| orientation.unwrap() * v)
         .collect();
-    s1_beacons.sort_by(|v1, v2| compare_vector(v1, v2));
+    s1_beacons.sort_by(compare_vector);
 
     let mut stack = s2_beacons.clone();
     'outer: while let Some(s2_beacon) = stack.pop() {
@@ -132,7 +132,7 @@ fn align_scanner(s1: &mut ScannerInfo, s2: &ScannerInfo) -> bool {
             let offset = s2_beacon - s1_beacon; // offset + x1 = x2 (if correct)
             let mut aligned_beacons: Vec<Vector3<i32>> =
                 s1_beacons.clone().into_iter().map(|v| offset + v).collect();
-            aligned_beacons.sort_by(|x, y| compare_vector(x, y));
+            aligned_beacons.sort_by(compare_vector);
 
             let eq = equal_vector_count(&aligned_beacons, &s2_beacons);
             if eq >= ALIGNMENT_THRESHOLD {
@@ -307,24 +307,21 @@ fn possible_orientations() -> Vec<Matrix3<i32>> {
         .into_iter()
         .permutations(3)
         .map(|e| Matrix3::from_iterator(e.concat().into_iter()))
-        .map(|m| {
+        .flat_map(|m| {
             let mut m2 = m;
             multiply_row(&mut m2, 0, -1);
             vec![m, m2]
         })
-        .flatten()
-        .map(|m| {
+        .flat_map(|m| {
             let mut m2 = m;
             multiply_row(&mut m2, 1, -1);
             vec![m, m2]
         })
-        .flatten()
-        .map(|m| {
+        .flat_map(|m| {
             let mut m2 = m;
             multiply_row(&mut m2, 2, -1);
             vec![m, m2]
         })
-        .flatten()
         .filter(|m| det(m) == 1)
         .collect();
     matrices
@@ -338,7 +335,7 @@ fn multiply_row(matrix: &mut Matrix3<i32>, index: usize, scalar: i32) {
 
 /// Determinant of 3x3 Matrix
 fn det(m: &Matrix3<i32>) -> i32 {
-    let mut d = m[0] * (m[3 * 1 + 1] * m[3 * 2 + 2] - m[3 * 2 + 1] * m[3 * 1 + 2]);
+    let mut d = m[0] * (m[3 + 1] * m[3 * 2 + 2] - m[3 * 2 + 1] * m[3 + 2]);
     d -= m[3] * (m[1] * m[8] - m[7] * m[2]);
     d += m[6] * (m[1] * m[5] - m[4] * m[2]);
     d

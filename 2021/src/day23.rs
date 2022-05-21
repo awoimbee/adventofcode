@@ -132,8 +132,6 @@ impl State {
         println!("#############");
         print!("#");
         // TODO
-
-
     }
 }
 

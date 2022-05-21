@@ -46,14 +46,14 @@ fn part_2(input: &str) -> usize {
 
         // ingest
         let (raw_signals, raw_output) = line.split_once('|').unwrap();
-        for rs in raw_signals.trim().split_whitespace() {
+        for rs in raw_signals.split_whitespace() {
             let signal_len = rs.len();
             let signal = signal_srt2byte(rs);
             if !signal_patterns[signal_len - 2].contains(&signal) {
                 signal_patterns[signal_len - 2].push(signal);
             }
         }
-        for (i, ro) in raw_output.trim().split_whitespace().enumerate() {
+        for (i, ro) in raw_output.split_whitespace().enumerate() {
             output_value[i] = signal_srt2byte(ro);
         }
 

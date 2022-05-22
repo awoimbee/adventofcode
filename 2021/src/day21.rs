@@ -1,3 +1,4 @@
+use fnv::FnvHashMap;
 use itertools::Itertools;
 use nom::{
     bytes::complete::tag,
@@ -5,7 +6,6 @@ use nom::{
     error::Error,
     sequence::{preceded, terminated},
 };
-use fnv::FnvHashMap;
 
 const INPUT: &str = include_str!("../input/day21.txt");
 

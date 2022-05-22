@@ -1,6 +1,9 @@
-use std::collections::HashMap;
+use fnv::FnvHashMap;
+use heapless::Vec as StackVec;
+use itertools::Itertools;
 
-const INPUT: &str = include_str!("../input/day23.txt");
+const INPUT_P1: &str = include_str!("../input/day23_1.txt");
+const INPUT_P2: &str = include_str!("../input/day23_2.txt");
 
 const WEIGHT: [i64; 4] = [1, 10, 100, 1000];
 const BUF_WEIGHT: [i64; 7] = [0, 1, 3, 5, 7, 9, 10];
@@ -14,34 +17,74 @@ fn buf_traversal_cost(i: usize, j: usize, c: u8) -> i64 {
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct State {
-    rooms: [Vec<u8>; 4],
+struct State<const ROOM_SIZE: usize> {
+    rooms: [StackVec<u8, ROOM_SIZE>; 4],
     buffer: [u8; 7],
 }
 
-impl State {
+impl<const ROOM_SIZE: usize> State<ROOM_SIZE> {
     fn from_input(input: &str) -> Self {
-        let input = input[14..].as_bytes();
-        let i = input;
-        let buffer = [i[1], i[2], i[4], i[6], i[8], i[10], i[11]];
-        let rooms = [
-            vec![i[18], i[32]],
-            vec![i[20], i[34]],
-            vec![i[22], i[36]],
-            vec![i[24], i[38]],
+        debug_assert!(input.starts_with("#############\n#"));
+        let raw_buffer = &input.as_bytes()[15..26];
+        let mut raw_rows = input[28..].lines().rev();
+        let term_row = raw_rows.next().unwrap();
+        debug_assert_eq!(term_row, "  #########  ");
+
+        let mut buffer = [b'.'; 7];
+        {
+            let mut j = 0;
+            for (i, &val) in raw_buffer.iter().enumerate() {
+                if [3, 5, 7, 9].contains(&i) {
+                    continue;
+                };
+                buffer[j] = val;
+                j += 1;
+            }
+        }
+        let mut rooms = [
+            StackVec::new(),
+            StackVec::new(),
+            StackVec::new(),
+            StackVec::new(),
         ];
+        for r in raw_rows {
+            let rb = r.as_bytes();
+            rooms[0].push(rb[3]).unwrap();
+            rooms[1].push(rb[5]).unwrap();
+            rooms[2].push(rb[7]).unwrap();
+            rooms[3].push(rb[9]).unwrap();
+        }
+
+        for r in rooms.iter() {
+            debug_assert_eq!(r.len(), ROOM_SIZE);
+        }
+        debug_assert!(!rooms.iter().flatten().contains(&b'#'));
+        debug_assert!(!buffer.iter().contains(&b'#'));
+
         Self { rooms, buffer }
     }
 
     fn final_state() -> Self {
-        State {
-            rooms: [
-                vec![b'A', b'A'],
-                vec![b'B', b'B'],
-                vec![b'C', b'C'],
-                vec![b'D', b'D'],
-            ],
-            buffer: [b'.'; 7],
+        match ROOM_SIZE {
+            2 => State {
+                rooms: [
+                    StackVec::from_slice(&[b'A', b'A']).unwrap(),
+                    StackVec::from_slice(&[b'B', b'B']).unwrap(),
+                    StackVec::from_slice(&[b'C', b'C']).unwrap(),
+                    StackVec::from_slice(&[b'D', b'D']).unwrap(),
+                ],
+                buffer: [b'.'; 7],
+            },
+            4 => State {
+                rooms: [
+                    StackVec::from_slice(&[b'A', b'A', b'A', b'A']).unwrap(),
+                    StackVec::from_slice(&[b'B', b'B', b'B', b'B']).unwrap(),
+                    StackVec::from_slice(&[b'C', b'C', b'C', b'C']).unwrap(),
+                    StackVec::from_slice(&[b'D', b'D', b'D', b'D']).unwrap(),
+                ],
+                buffer: [b'.'; 7],
+            },
+            _ => panic!("Room size not handled: {}", ROOM_SIZE),
         }
     }
 
@@ -50,14 +93,14 @@ impl State {
     }
 
     fn entry_cost(&self, i: usize) -> i64 {
-        (4 - self.rooms[i].len()) as i64 * WEIGHT[i]
+        (ROOM_SIZE - self.rooms[i].len()) as i64 * WEIGHT[i]
     }
 
     fn exit_cost(&self, i: usize, c: u8) -> i64 {
-        (4 - self.rooms[i].len()) as i64 * weight(c)
+        (ROOM_SIZE - self.rooms[i].len()) as i64 * weight(c)
     }
 
-    fn transition_room_to_buffer(&self) -> Vec<(State, i64)> {
+    fn transition_room_to_buffer(&self) -> Vec<(State<ROOM_SIZE>, i64)> {
         let mut res = vec![];
         for i in 0..4 {
             if self.is_valid_room(i) {
@@ -89,7 +132,7 @@ impl State {
         res
     }
 
-    fn transition_buffer_to_room(&self) -> Vec<(State, i64)> {
+    fn transition_buffer_to_room(&self) -> Vec<(State<ROOM_SIZE>, i64)> {
         let mut res = vec![];
         for i in 0..7 {
             if self.buffer[i] == b'.' {
@@ -105,7 +148,7 @@ impl State {
                     let c = buf_traversal_cost(i, r + 1, next.buffer[i])
                         + weight(next.buffer[i])
                         + self.entry_cost(r);
-                    next.rooms[r].push(next.buffer[i]);
+                    next.rooms[r].push(next.buffer[i]).unwrap();
                     next.buffer[i] = b'.';
                     res.push((next, c));
                 }
@@ -114,7 +157,7 @@ impl State {
                 let c = buf_traversal_cost(r + 2, i, next.buffer[i])
                     + weight(next.buffer[i])
                     + self.entry_cost(r);
-                next.rooms[r].push(next.buffer[i]);
+                next.rooms[r].push(next.buffer[i]).unwrap();
                 next.buffer[i] = b'.';
                 res.push((next, c));
             }
@@ -122,21 +165,57 @@ impl State {
         res
     }
 
-    fn transitions(&self) -> Vec<(State, i64)> {
+    fn transitions(&self) -> Vec<(State<ROOM_SIZE>, i64)> {
         let mut res = self.transition_room_to_buffer();
         res.append(&mut self.transition_buffer_to_room());
         res
     }
+}
 
-    fn _print(&self) {
-        println!("#############");
-        print!("#");
-        // TODO
+impl<const ROOM_SIZE: usize> std::fmt::Display for State<ROOM_SIZE> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        writeln!(f, "#############")?;
+        let b = self.buffer.iter().map(|&b| b as char).collect::<Vec<_>>();
+        writeln!(
+            f,
+            "#{}{}.{}.{}.{}.{}{}#",
+            b[0], b[1], b[2], b[3], b[4], b[5], b[6]
+        )?;
+        let mut rooms = self
+            .rooms
+            .iter()
+            .map(|r| r.iter().map(|&b| b as char))
+            .collect::<Vec<_>>();
+
+        let mut lines = (0..ROOM_SIZE)
+            .map(|_| {
+                format!(
+                    "  #{}#{}#{}#{}#  ",
+                    rooms[0].next().unwrap_or('.'),
+                    rooms[1].next().unwrap_or('.'),
+                    rooms[2].next().unwrap_or('.'),
+                    rooms[3].next().unwrap_or('.')
+                )
+            })
+            .collect::<Vec<_>>();
+        unsafe {
+            let lol = lines.last_mut().unwrap().as_bytes_mut();
+            lol[0] = b'#';
+            lol[1] = b'#';
+            lol[11] = b'#';
+            lol[12] = b'#';
+        }
+        for l in lines.into_iter().rev() {
+            writeln!(f, "{}", l)?;
+        }
+        write!(f, "  #########  ")?;
+
+        Ok(())
     }
 }
 
-fn solve(input: State, expected: State) -> i64 {
-    let mut costs = HashMap::new();
+fn solve<const ROOM_SIZE: usize>(input: State<ROOM_SIZE>, expected: State<ROOM_SIZE>) -> i64 {
+    let mut costs = FnvHashMap::default();
     let mut q = std::collections::BinaryHeap::new();
     costs.insert(input.clone(), 0);
     q.push((0, input));
@@ -162,27 +241,41 @@ fn solve(input: State, expected: State) -> i64 {
 }
 
 pub fn day23() -> (String, String) {
-    let part1 = solve(State::from_input(INPUT), State::final_state());
+    let part1 = solve(State::<2>::from_input(INPUT_P1), State::final_state());
+    let part2 = solve(State::<4>::from_input(INPUT_P2), State::final_state());
 
-    (part1.to_string(), "".to_string())
+    (part1.to_string(), part2.to_string())
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    const TEST_INPUT_P1: &str =
+        "#############\n#...........#\n###B#C#B#D###\n  #A#D#C#A#  \n  #########  ";
+    const TEST_INPUT_P2: &str =
+        "#############\n#...........#\n###B#C#B#D###\n  #D#C#B#A#  \n  #D#B#A#C#  \n  #A#D#C#A#  \n  #########  ";
 
     #[test]
-    fn test_parsing() {
-        const INPUT: &str = "#############
-#...........#
-###B#C#B#D###
-  #A#D#C#A#
-  #########";
-        let s = State::from_input(INPUT);
-        assert_eq!(s.buffer, [b'.'; 7]);
-        assert_eq!(s.rooms[0], [b'B', b'A']);
-        assert_eq!(s.rooms[1], [b'C', b'D']);
-        assert_eq!(s.rooms[2], [b'B', b'C']);
-        assert_eq!(s.rooms[3], [b'D', b'A']);
+    fn test_parsing_p1() {
+        let s = State::<2>::from_input(TEST_INPUT_P1);
+        assert_eq!(s.to_string(), TEST_INPUT_P1);
+    }
+
+    #[test]
+    fn test_parsing_p2() {
+        let s = State::<4>::from_input(TEST_INPUT_P2);
+        assert_eq!(s.to_string(), TEST_INPUT_P2);
+    }
+
+    #[test]
+    fn test_part_1() {
+        let input = State::<2>::from_input(TEST_INPUT_P1);
+        assert_eq!(solve(input, State::final_state()), 12521);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let input = State::<4>::from_input(TEST_INPUT_P2);
+        assert_eq!(solve(input, State::final_state()), 44169);
     }
 }

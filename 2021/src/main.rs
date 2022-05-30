@@ -1,6 +1,7 @@
 #![feature(mixed_integer_ops)]
 #![feature(core_intrinsics)]
 #![feature(option_result_contains)]
+#![feature(box_syntax)]
 
 mod day01;
 mod day02;

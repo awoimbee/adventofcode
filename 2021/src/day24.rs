@@ -1,11 +1,12 @@
-use std::hint::unreachable_unchecked;
 use anyhow::{anyhow, Result};
+use fnv::FnvHashMap;
 use nom::{
     bytes::complete::tag,
     character::complete,
     error::Error,
     sequence::{terminated, tuple},
 };
+use std::hint::unreachable_unchecked;
 
 const INPUT: &str = include_str!("../input/day24.txt");
 
@@ -98,7 +99,7 @@ impl Input {
                     let b = self.values[*b as usize];
                     let a = &mut self.values[*a as usize];
                     if *a < 0 || b <= 0 {
-                        return false;
+                        panic!();
                     }
                     *a %= b;
                 }
@@ -106,7 +107,7 @@ impl Input {
                     let b = self.values[*b as usize];
                     let a = &mut self.values[*a as usize];
                     if b == 0 {
-                        return false;
+                        panic!();
                     }
                     *a /= b;
                 }
@@ -120,13 +121,10 @@ impl Input {
     }
 
     fn run(&mut self, model_number: u64) -> bool {
-        // debug_assert_eq!(model_number & 0b1, 0);
-        // debug_assert_eq!(model_number & (0b11 << 14), 0);
         let model_number = model_number.to_string();
         if model_number.contains('0') {
             return false;
         }
-        println!("{}", model_number);
         let model_nb_inp = model_number
             .into_bytes()
             .into_iter()
@@ -145,114 +143,88 @@ impl Input {
     }
 }
 
-const fn part1_reversed_engineered_program(input: &[i64; 14]) -> bool {
-    // ^add (.+) (.+)$ => $1 += $2;
-    // ^inp (.+)$ => $1 = input.pop().unwrap();
-    // ^eql (.+) (.+)$ => $1 = if $1 == $2 {1} else {0};
-    let mut x = 0;
-    let mut y = 0;
-    let mut z = 0;
-    let mut w = 0;
-
-    w = input[10];
-    if w < 1 || w > 9 {
-        unsafe{unreachable_unchecked();}
+/// returns the value of z
+fn day24_input_step(input: u64, mut z: i64, x_add: i64, y_add: u64, z_div: u64) -> i64 {
+    if (z_div != 1 && z_div != 26) || input < 1 || input > 9 {
+        unsafe {
+            unreachable_unchecked();
+        }
     }
-    z = ((((input[0]+8 + input[1]+11)*26+(input[3]+11))*26+(input[6]+10))*26+(input[7]+6))*26+(input[8]+1);
-    z *= if input[9]+5 == input[10] { 1 } else { 26 };
-    z += if input[9]+5 == input[10] {0} else{input[10]+9};
-    w = input[11];
-    if w < 1 || w > 9 {
-        unsafe{unreachable_unchecked();}
+    let eq = (z % 26 + x_add) as u64 == input;
+    z /= z_div as i64; // either do nothing or pop the last element (/26)
+    if !eq {
+        z *= 26;
+        z += (input + y_add) as i64;
     }
-    x = z%26-6;
-    z /= 26;
-    x = if x == w { 0 } else { 1 };
-    y = 25*x+1;
-    z *= y;
-    y = 0;
-    y += w;
-    y += 14;
-    y *= x;
-    z += y;
-    w = input[12];
-    if w < 1 || w > 9 {
-        unsafe{unreachable_unchecked();}
-    }
-    x = z%26-2;
-    z /= 26;
-    x = if x == w { 0 } else { 1 };
-    y = 25*x+1;
-    z *= y;
-    y = 0;
-    y += w;
-    y += 11;
-    y *= x;
-    z += y;
-    w = input[13];
-    if w < 1 || w > 9 {
-        unsafe{unreachable_unchecked();}
-    }
-    x = z%26-9;
-    z /= 26;
-    x = if x == w { 0 } else { 1 };
-    y =  25*x+1;
-    z *= y;
-    y = w+2*x;
-    z += y;
-
-    z == 1
+    z
 }
 
-fn part1() -> [i64; 14] {
-    let mut model_number = [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,9,9];
-    let mut i = 13;
-    let mut j = 0;
-    loop {
-        model_number[i] -= 1;
-        if model_number[i] == 0 {
-            model_number[i] = 9;
-            i -= 1;
-            if i == 2 || i == 4 || i == 5 {
-                i -= 1;
+
+fn day24_input_solver() -> (u64, u64) {
+    let x_add = [14, 15, 13, -10, 14, -3, -14, 12, 14, 12, -6, -6, -2, -9];
+    let y_add = [8, 11, 2, 11, 1, 5, 10, 6, 1, 11, 9, 14, 11, 2];
+    let z_div = [1, 1, 1, 26, 1, 26, 26, 1, 1, 1, 26, 26, 26, 26];
+
+
+    let mut z_backlog = FnvHashMap::default();
+
+    z_backlog.insert(0, [box [0u8; 14], box [0u8; 14]]);
+    for idx in 0..14 {
+        let mut new_z_backlog = FnvHashMap::<i64, [Box<[u8; 14]>; 2]>::default();
+        for (z, mut paths) in z_backlog.into_iter() {
+            for input in 1..10u8 {
+                let new_z = day24_input_step(input as u64, z, x_add[idx], y_add[idx], z_div[idx]);
+                if !(0..1_000_000).contains(&new_z) {
+                    continue;
+                }
+                paths[0][idx] = input;
+                paths[1][idx] = input;
+                if let Some(other_paths) = new_z_backlog.get_mut(&new_z) {
+                    if other_paths[0][idx] > paths[0][idx] {
+                        other_paths[0] = paths[0].clone();
+                    }
+                    if other_paths[1][idx] < paths[1][idx] {
+                        other_paths[1] = paths[1].clone();
+                    }
+                } else {
+                    new_z_backlog.insert(new_z, paths.clone());
+                }
             }
-            continue;
-        } else {
-            i = 13;
         }
-        j += 1;
-        if j % 10_000_000 == 0 {
-            println!("model_nb: {:?}", model_number);
-        }
-        // model_number -= 1;
-        // let m_n_str = model_number.to_string();
-
-        // if m_n_str.contains('0') {
-        //     continue;
-        // }
-        // if model_number % 111 == 0 {
-        //     println!("{}", m_n_str);
-        // }
-        // let model_nb_inp = m_n_str
-        //     .into_bytes()
-        //     .into_iter()
-        //     .rev()
-        //     .map(|b| (b - b'0') as i64)
-        //     .collect::<Vec<_>>();
-        if part1_reversed_engineered_program(&model_number) {
-            break;
-        }
-
+        z_backlog = new_z_backlog;
     }
-    model_number
+    z_backlog
+        .into_iter()
+        .filter(|(z, _)| *z == 0)
+        .flat_map(|(_, paths)| {
+            paths.into_iter().map(
+                |p|
+                p.into_iter().map(|comp| (comp + b'0') as char)
+                .collect::<String>()
+                .parse::<u64>()
+                .unwrap())
+        })
+        .fold((u64::MAX, u64::MIN), |mut acc, elem| {
+            acc.0 = acc.0.min(elem);
+            acc.1 = acc.1.max(elem);
+            acc
+        })
 }
+
 
 pub fn day24() -> (String, String) {
-    let mut input = Input::from_str(INPUT).unwrap();
-    let part1 = part1().iter().map(|&nb| (b'0' + nb as u8) as char).collect::<String>();
-    let part2 = "".to_string();
+    let mut monad = Input::from_str(INPUT).unwrap();
+    let (part2, part1) = day24_input_solver();
+    debug_assert!({
+        monad.reset();
+        monad.run(part1)
+    });
+    debug_assert!({
+        monad.reset();
+        monad.run(part2)
+    });
 
-    (part1, part2)
+    (part1.to_string(), part2.to_string())
 }
 
 #[cfg(test)]
@@ -299,6 +271,21 @@ mod test {
             assert_eq!(input.values[1], binary_vec[8]);
             assert_eq!(input.values[0], binary_vec[7]);
             assert_eq!(input.values[3], binary_vec[6]);
+            input.reset();
+        }
+    }
+
+    #[test]
+    fn test_part1_reversed_engineered_program() {
+        let mut input = Input::from_str(INPUT).unwrap();
+        let test_values = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 2, 3, 7, 5, 6, 7, 8, 9, 2, 3, 4, 5, 6],
+        ];
+        for test_val in test_values.iter() {
+            let reg_z = part1_reversed_engineered_program(test_val);
+            input._run_vm(test_val.iter().rev().map(|&v| v as u8).collect());
+            assert_eq!(input.values[2], reg_z, "input: {:?}", test_val);
             input.reset();
         }
     }

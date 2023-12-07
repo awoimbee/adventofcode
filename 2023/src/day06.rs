@@ -15,8 +15,20 @@ fn ways_to_win_race(time: i64, distance: i64) -> i64 {
 
 fn solve_p1(input: &str) -> i64 {
     let mut lines = input.lines();
-    let times: Vec<_> = lines.next().unwrap().split_whitespace().skip(1).map(|num| num.parse().unwrap()).collect();
-    let distances: Vec<_> = lines.next().unwrap().split_whitespace().skip(1).map(|num| num.parse().unwrap()).collect();
+    let times: Vec<_> = lines
+        .next()
+        .unwrap()
+        .split_whitespace()
+        .skip(1)
+        .map(|num| num.parse().unwrap())
+        .collect();
+    let distances: Vec<_> = lines
+        .next()
+        .unwrap()
+        .split_whitespace()
+        .skip(1)
+        .map(|num| num.parse().unwrap())
+        .collect();
     let mut p1 = 1;
 
     for (time, distance) in times.into_iter().zip(distances.into_iter()) {
@@ -28,8 +40,22 @@ fn solve_p1(input: &str) -> i64 {
 
 fn solve_p2(input: &str) -> i64 {
     let mut lines = input.lines();
-    let time = lines.next().unwrap().split_whitespace().skip(1).collect::<String>().parse().unwrap();
-    let distance = lines.next().unwrap().split_whitespace().skip(1).collect::<String>().parse().unwrap();
+    let time = lines
+        .next()
+        .unwrap()
+        .split_whitespace()
+        .skip(1)
+        .collect::<String>()
+        .parse()
+        .unwrap();
+    let distance = lines
+        .next()
+        .unwrap()
+        .split_whitespace()
+        .skip(1)
+        .collect::<String>()
+        .parse()
+        .unwrap();
 
     ways_to_win_race(time, distance)
 }

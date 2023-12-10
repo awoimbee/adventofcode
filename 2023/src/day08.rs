@@ -1,6 +1,3 @@
-use core::panic;
-use std::collections::HashMap;
-
 const INPUT: &str = include_str!("../input/day08.txt");
 
 const fn name_to_idx(name: &str) -> u32 {
@@ -13,6 +10,7 @@ const fn name_to_idx(name: &str) -> u32 {
     letters[0] | letters[1] << 5 | letters[2] << 10
 }
 
+#[allow(dead_code)]
 fn idx_to_name(idx: u32) -> &'static str {
     static mut NAME: [u8; 3] = [0; 3];
     unsafe {

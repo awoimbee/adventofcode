@@ -19,7 +19,7 @@ fn parse_input(input: &str) -> (Vec<u32>, Vec<u32>) {
         },
     );
     let (remaining, parsed) = parser(input).expect("Could not parse input");
-    assert!(remaining == "");
+    assert!(remaining.is_empty());
     parsed
 }
 
@@ -39,8 +39,8 @@ fn solve(input: &str) -> (u32, u32) {
     let b_len = b.len();
     let a_len = a.len();
     // padd the arrays with 1 extra value to avoid having to check `j < b.len()` everywhere
-    a.push(std::u32::MAX);
-    b.push(std::u32::MAX);
+    a.push(u32::MAX);
+    b.push(u32::MAX);
     while i < a_len && j < b_len {
         let mut num_matches = 0;
         while b[j] < a[i] {
